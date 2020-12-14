@@ -1,2 +1,3 @@
-module "github.com/Jameywoo/TinyBase"
+module github.com/Jameywoo/TinyBase
 
+go 1.14
