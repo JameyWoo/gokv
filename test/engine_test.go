@@ -1,9 +1,8 @@
 package test
 
 import (
-	"fmt"
 	"github.com/Jameywoo/TinyBase"
-	"log"
+	"github.com/sirupsen/logrus"
 	"testing"
 	"unsafe"
 )
@@ -15,7 +14,7 @@ import (
 func TestEnginePut(t *testing.T) {
 	e := TinyBase.NewEngine()
 	_ = e.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
-	fmt.Println(e)
+	logrus.Info(e)
 }
 
 func TestEngineGet(t *testing.T) {
@@ -26,13 +25,13 @@ func TestEngineGet(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("val = %s\n", val)
+	logrus.Infof("val = %s", val)
 
 	val, err = e.Get("fuck")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
-	fmt.Printf("val = %s\n\n", val)
+	logrus.Infof("val = %s", val)
 }
 
 func TestEngineDelete(t *testing.T) {
@@ -45,21 +44,21 @@ func TestEngineDelete(t *testing.T) {
 
 	sr, err := e.Scan("", "z")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
-	fmt.Println(sr)
+	logrus.Info(sr)
 
 	sr, err = e.Scan("donet", "pqu")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
-	fmt.Println(sr)
+	logrus.Info(sr)
 
 	sr, err = e.Scan("", "foo")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
-	fmt.Println(sr)
+	logrus.Info(sr)
 }
 
 /*
@@ -69,9 +68,9 @@ func TestMaxMemSize(t *testing.T) {
 	m := make(map[string]string)
 	m["hello"] = "world"
 
-	fmt.Println(unsafe.Sizeof(m))
+	logrus.Info(unsafe.Sizeof(m))
 
 	s := "hello"
-	fmt.Println(unsafe.Sizeof(s))
-	fmt.Println(len(s))
+	logrus.Info(unsafe.Sizeof(s))
+	logrus.Info(len(s))
 }
