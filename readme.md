@@ -12,7 +12,7 @@ A persistent, LSM tree structured key value database engine implemented by go la
 
 ### todo
 - [x] 接口: Get, Put, Delete, Scan
-- [ ] 布隆过滤器算法版 (暂不集成)
+- [x] 布隆过滤器算法版 (暂不集成)
 - [x] map版 Memstore
 - [ ] 基本SSTable结构 (追加, 无序, 递增文件)
 - [ ] LSM结构

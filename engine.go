@@ -25,8 +25,8 @@ func NewEngine() *Engine {
 	return &Engine{memStore: make(map[string]string), memSize: 0}
 }
 
-func (e *Engine) Get(str string) (string, error) {
-	m, ok := e.memStore[str]
+func (e *Engine) Get(key string) (string, error) {
+	m, ok := e.memStore[key]
 	if !ok {
 		return "", errors.New("no such element")
 	}
@@ -40,8 +40,8 @@ func (e *Engine) Put(kv KeyValue) error {
 }
 
 // 删除的元素的value用特殊的字符串来代替
-func (e *Engine) Delete(str string) error {
-	e.memStore[str] = deleted
+func (e *Engine) Delete(key string) error {
+	e.memStore[key] = deleted
 	return nil
 }
 
