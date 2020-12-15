@@ -2,7 +2,7 @@
 
 A persistent, LSM tree structured key value database engine implemented by go language.
 
-## Devlopment log
+## Dev log
 
 ## v0.1.0
 
@@ -33,3 +33,4 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] 多种WAL策略实现, 可选与默认
 - [ ] Compaction基本实现(按时间线与文件大小, hbase的基本策略)
 - [ ] Compaction多种策略的实现
+- [ ] SSTable的前缀压缩
