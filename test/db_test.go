@@ -30,3 +30,15 @@ func TestDbOpen(t *testing.T) {
 func TestTimeChuo(t *testing.T) {
 	logrus.Info(time.Now().UnixNano())
 }
+
+func BenchmarkDbOpen(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		db, err := TinyBase.Open("db0")
+		if err != nil {
+			logrus.Error(err)
+		}
+		db.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
+		_, _ = db.Get("hello")
+		db.Close()
+	}
+}

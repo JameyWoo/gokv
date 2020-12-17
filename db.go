@@ -48,6 +48,10 @@ func Open(dirPath string) (*DB, error) {
 	return &DB{eng: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}, nil
 }
 
+func (db *DB) Close() {
+	db.wal.Close()
+}
+
 func (db *DB) Get(key string) (string, error) {
 	return db.eng.Get(key)
 }
