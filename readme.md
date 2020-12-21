@@ -34,3 +34,5 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] Compaction基本实现(按时间线与文件大小, hbase的基本策略)
 - [ ] Compaction多种策略的实现
 - [ ] SSTable的前缀压缩
+- [ ] 设计实现varint可变长度编码
+- [ ] 考虑增量设计(偏移增量等)
