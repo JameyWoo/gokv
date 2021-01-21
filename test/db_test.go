@@ -22,7 +22,7 @@ func TestDbOpen(t *testing.T) {
 	if err != nil {
 		logrus.Error(err)
 	}
-	db.Put(gokv.KeyValue{Key: "hello", Value: "world"})
+	db.Put("hello", "world")
 	val, _ := db.Get("hello")
 	logrus.Info("hello: ", val)
 	db.Close()
@@ -35,8 +35,8 @@ func TestFlush(t *testing.T) {
 		logrus.Error(err)
 	}
 	defer db.Close()
-	for i := 0; i < 11000; i++ {
-		db.Put(gokv.KeyValue{Key: strconv.Itoa(i) + "_key", Value: strconv.Itoa(i) + "_value"})
+	for i := 0; i < 1100; i++ {
+		db.Put(strconv.Itoa(i) + "_key", strconv.Itoa(i) + "_value")
 	}
 	val, err := db.Get("100_key")
 	if err != nil {
@@ -64,7 +64,7 @@ func BenchmarkDbOpen(b *testing.B) {
 		if err != nil {
 			logrus.Error(err)
 		}
-		db.Put(gokv.KeyValue{Key: "hello", Value: "world"})
+		db.Put("hello", "world")
 		_, _ = db.Get("hello")
 		db.Close()
 	}

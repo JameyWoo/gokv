@@ -4,4 +4,4 @@
 
 
 # 内存memStore阈值配置, 以byte为单位
-MaxMemSize: 65536
+MaxMemSize: 8192

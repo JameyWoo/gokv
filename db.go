@@ -10,12 +10,12 @@ package gokv
 
 import (
 	"bufio"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -70,13 +70,18 @@ func (db *DB) Get(key string) (Value, error) {
 	return db.diskGet(key)
 }
 
-func (db *DB) Put(kv KeyValue) error {
+func (db *DB) Put(key, value string) error {
+	return db.put(KeyValue{Key: key,
+		Val: Value{Value: value, Timestamp: time.Now().UnixNano() / 1e6, Op: SET}})
+}
+
+func (db *DB) put(kv KeyValue) error {
 	// TODO: 改进写日志的方式
 	db.writeLogPut(kv)
 	db.memory.Put(kv)
 	// 这个阈值用常量 MaxMemSize表示, MaxMemSize定义在配置文件中, 后续改为可配置的量
 	if db.memory.memSize >= config.MaxMemSize {
-		logrus.Info("flush")
+		//logrus.Info("flush")
 		// 刷到磁盘
 		db.flush()
 		// TODO: 之后实现异步的flush操作
@@ -144,13 +149,24 @@ func (db *DB) flush() error {
 	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
 	fileId := len(files)
 
-	fileStr := ""
-	for key, val := range db.memory.memStore {
-		// 编码, [keyLen, key, valueLen, value]
-		keyLen, valueLen := make([]byte, 4), make([]byte, 4)
-		binary.LittleEndian.PutUint32(keyLen, uint32(len(key)))
-		binary.LittleEndian.PutUint32(valueLen, uint32(len(val)))
-		fileStr += string(keyLen) + key + string(valueLen) + val
+	fileBytes := make([]byte, 0)
+
+	// 有序地flush
+	keys := make([]string, 0, len(db.memory.memStore))
+	for key, _ := range db.memory.memStore {
+		if key == "" {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		// 编码, [varint_key, key, varint_value, value, Timestamp, Op]
+		kv := KeyValue{Key: key, Val: db.memory.memStore[key]}
+		//logrus.Info(kv.Key)
+		kvBytes := kv.Encode()
+		fileBytes = append(fileBytes, kvBytes...)
 	}
 	// 创建一个新文件, 前面补零
 	newFile, err := os.Create(flushPath + fmt.Sprintf("%010d", fileId) + ".flush")
@@ -158,14 +174,14 @@ func (db *DB) flush() error {
 		logrus.Fatal(err)
 		return err
 	}
-	byteLen, err := newFile.WriteString(fileStr)
+	byteLen, err := newFile.Write(fileBytes)
 	if err != nil {
 		logrus.Fatal(err)
 		return err
 	}
 	_ = newFile.Sync()
 
-	if byteLen != len(fileStr) {
+	if byteLen != len(fileBytes) {
 		err = errors.New("byteLen != len(fileStr)")
 		logrus.Fatal(err)
 		return err
@@ -184,24 +200,19 @@ func (db *DB) diskGet(key string) (Value, error) {
 	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
 	for ii := 0; ii < len(files); ii++ {
 		bytes, err := ioutil.ReadFile(flushPath + files[ii].Name())
-		//logrus.Info(flushPath + files[ii].Name())
 		if err != nil {
 			logrus.Error(err)
 		}
+		//logrus.Info("file: ", files[ii].Name())
 		// 解码
-		i := 0
-		for i < len(bytes) {
-			keyLen := int(binary.LittleEndian.Uint32(bytes[i: i + 4]))
-			theKey := string(bytes[i + 4: i + 4 + keyLen])
-			//logrus.Info("theKey: ", theKey)
-			i = i + 4 + keyLen
-			valLen := int(binary.LittleEndian.Uint32(bytes[i: i + 4]))
-			if theKey == key {
-				return string(bytes[i + 4: i + 4 + valLen]), nil
-			} else {
-				i = i + 4 + valLen
+		for len(bytes) != 0 {
+			kv := KeyValue{}
+			kv, bytes = KvDecode(bytes)
+			//logrus.Infof("key: %s, val: %s", kv.Key, kv.Val.Value)
+			if key == kv.Key {
+				return kv.Val, nil
 			}
 		}
 	}
-	return "", GetEmptyError
+	return Value{}, GetEmptyError
 }
