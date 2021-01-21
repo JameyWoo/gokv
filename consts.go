@@ -11,3 +11,10 @@ package gokv
 const (
 	deleted string = "__deleted__"
 )
+
+type Op byte
+
+const (
+	SET Op = 0
+	DEL
+)

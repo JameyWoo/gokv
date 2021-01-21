@@ -35,21 +35,25 @@ func Open(dirPath string) (*DB, error) {
 	}
 	var wal *os.File
 	walPath := dirPath + "/wal.log"
+	// 查看是否有日志文件, 如果没有则创建
+	checkWal(walPath)
+	wa, err := os.OpenFile(walPath, os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	wal = wa
+
+	return &DB{memory: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}, nil
+}
+
+func checkWal(walPath string) {
 	if !Exists(walPath) {
 		wa, err := os.Create(walPath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		wal = wa
-	} else {
-		wa, err := os.OpenFile(walPath, os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		wal = wa
+		wa.Close()
 	}
-
-	return &DB{memory: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}, nil
 }
 
 func (db *DB) Close() {
@@ -72,12 +76,22 @@ func (db *DB) Put(kv KeyValue) error {
 	db.memory.Put(kv)
 	// 这个阈值用常量 MaxMemSize表示, MaxMemSize定义在配置文件中, 后续改为可配置的量
 	if db.memory.memSize >= config.MaxMemSize {
+		logrus.Info("flush")
 		// 刷到磁盘
 		db.flush()
 		// TODO: 之后实现异步的flush操作
 		db.memory.memStore = make(map[string]string)
 		// ! 这个也要重置
 		db.memory.memSize = 0
+		// 清空 wal.log 文件内容, 用直接创建的方式
+		// Create creates or truncates the named file. If the file already exists, it is truncated.
+		wal, err := os.Create(db.walPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		wal.Close()
+		wal, err = os.OpenFile(db.walPath, os.O_WRONLY|os.O_APPEND, 0666)
+		db.wal = wal
 	}
 	return nil
 }
@@ -98,7 +112,8 @@ func (db *DB) Scan(startKey, endKey string) ([]KeyValue, error) {
 func (db *DB) writeLogPut(kv KeyValue) error {
 	wal := db.wal
 	write := bufio.NewWriter(wal)
-	_, err := write.WriteString((time.Now().String()) + ": put\n")
+	_, err := write.WriteString(fmt.Sprintf("%s: put {key: %s, value: %s}\n",
+		time.Now().String(), kv.Key, kv.Value))
 	if err != nil {
 		logrus.Fatal(err)
 	}
