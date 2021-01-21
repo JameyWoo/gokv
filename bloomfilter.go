@@ -1,4 +1,4 @@
-package TinyBase
+package gokv
 
 import "github.com/howeyc/crc16"
 

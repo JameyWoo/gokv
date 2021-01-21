@@ -6,7 +6,7 @@
  * @Copyright (c) 2020, JameyWoo. All rights reserved.
  */
 
-package TinyBase
+package gokv
 
 const (
 	// memStore所占内存的阈值, 如果到达了该阈值则将其持久化. 暂定 1024B = 1KB

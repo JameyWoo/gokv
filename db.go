@@ -2,11 +2,11 @@
  * @Author: JameyWoo
  * @Email: 2622075127wjh@gmail.com
  * @Date: 2020/12/15
- * @Desc: TinyBase
+ * @Desc: gokv
  * @Copyright (c) 2020, JameyWoo. All rights reserved.
  */
 
-package TinyBase
+package gokv
 
 import (
 	"bufio"

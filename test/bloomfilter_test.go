@@ -9,13 +9,13 @@
 package test
 
 import (
-	"github.com/Jameywoo/TinyBase"
+	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
 
 func TestBloomFilter(t *testing.T) {
-	bf := TinyBase.NewBloomFilter()
+	bf := gokv.NewBloomFilter()
 	bf.Put("hello")
 	bf.Put("world")
 	bf.Put("shit")

@@ -1,4 +1,4 @@
-module github.com/Jameywoo/TinyBase
+module github.com/Jameywoo/gokv
 
 go 1.14
 

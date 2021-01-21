@@ -9,7 +9,7 @@
 package test
 
 import (
-	"github.com/Jameywoo/TinyBase"
+	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"testing"
@@ -18,11 +18,11 @@ import (
 
 // 文件的打开与写入
 func TestDbOpen(t *testing.T) {
-	db, err := TinyBase.Open("db0")
+	db, err := gokv.Open("db0")
 	if err != nil {
 		logrus.Error(err)
 	}
-	db.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
+	db.Put(gokv.KeyValue{Key: "hello", Value: "world"})
 	val, _ := db.Get("hello")
 	logrus.Info("hello: ", val)
 	db.Close()
@@ -30,12 +30,13 @@ func TestDbOpen(t *testing.T) {
 
 // 测试flush的写入以及读取
 func TestFlush(t *testing.T) {
-	db, err := TinyBase.Open("db1")
+	db, err := gokv.Open("db1")
 	if err != nil {
 		logrus.Error(err)
 	}
+	defer db.Close()
 	for i := 0; i < 11000; i++ {
-		db.Put(TinyBase.KeyValue{Key: strconv.Itoa(i) + "_key", Value: strconv.Itoa(i) + "_value"})
+		db.Put(gokv.KeyValue{Key: strconv.Itoa(i) + "_key", Value: strconv.Itoa(i) + "_value"})
 	}
 	val, err := db.Get("100_key")
 	if err != nil {
@@ -48,21 +49,22 @@ func TestFlush(t *testing.T) {
 		logrus.Error(err)
 	}
 	logrus.Info("val:", val)
-	db.Close()
 }
 
 // 时间戳
 func TestTimeChuo(t *testing.T) {
 	logrus.Info(time.Now().UnixNano())
+	logrus.Info(time.Now().Unix())
+	logrus.Info(time.Now().UnixNano() / 1000)
 }
 
 func BenchmarkDbOpen(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		db, err := TinyBase.Open("db0")
+		db, err := gokv.Open("db0")
 		if err != nil {
 			logrus.Error(err)
 		}
-		db.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
+		db.Put(gokv.KeyValue{Key: "hello", Value: "world"})
 		_, _ = db.Get("hello")
 		db.Close()
 	}

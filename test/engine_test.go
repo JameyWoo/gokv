@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/Jameywoo/TinyBase"
+	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"unsafe"
@@ -12,14 +12,14 @@ import (
  */
 
 func TestEnginePut(t *testing.T) {
-	e := TinyBase.NewEngine()
-	_ = e.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
+	e := gokv.NewEngine()
+	_ = e.Put(gokv.KeyValue{Key: "hello", Value: "world"})
 	logrus.Info(e)
 }
 
 func TestEngineGet(t *testing.T) {
-	e := TinyBase.NewEngine()
-	_ = e.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
+	e := gokv.NewEngine()
+	_ = e.Put(gokv.KeyValue{Key: "hello", Value: "world"})
 
 	val, err := e.Get("hello")
 	if err != nil {
@@ -35,12 +35,12 @@ func TestEngineGet(t *testing.T) {
 }
 
 func TestEngineDelete(t *testing.T) {
-	e := TinyBase.NewEngine()
-	_ = e.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
-	_ = e.Put(TinyBase.KeyValue{Key: "fuck", Value: "you"})
-	_ = e.Put(TinyBase.KeyValue{Key: "do", Value: "it"})
-	_ = e.Put(TinyBase.KeyValue{Key: "left", Value: "right"})
-	_ = e.Put(TinyBase.KeyValue{Key: "shutdown", Value: "away"})
+	e := gokv.NewEngine()
+	_ = e.Put(gokv.KeyValue{Key: "hello", Value: "world"})
+	_ = e.Put(gokv.KeyValue{Key: "fuck", Value: "you"})
+	_ = e.Put(gokv.KeyValue{Key: "do", Value: "it"})
+	_ = e.Put(gokv.KeyValue{Key: "left", Value: "right"})
+	_ = e.Put(gokv.KeyValue{Key: "shutdown", Value: "away"})
 
 	sr, err := e.Scan("", "z")
 	if err != nil {

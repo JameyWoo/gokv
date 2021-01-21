@@ -6,7 +6,7 @@
  * @Copyright (c) 2020, JameyWoo. All rights reserved.
  */
 
-package TinyBase
+package gokv
 
 import "errors"
 
