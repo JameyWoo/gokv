@@ -55,7 +55,7 @@ func TestFlush(t *testing.T) {
 func TestTimeChuo(t *testing.T) {
 	logrus.Info(time.Now().UnixNano())
 	logrus.Info(time.Now().Unix())
-	logrus.Info(time.Now().UnixNano() / 1000)
+	logrus.Info("毫秒: ", time.Now().UnixNano() / 1e6)
 }
 
 func BenchmarkDbOpen(b *testing.B) {

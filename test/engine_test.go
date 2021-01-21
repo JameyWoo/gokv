@@ -4,6 +4,7 @@ import (
 	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -73,4 +74,32 @@ func TestMaxMemSize(t *testing.T) {
 	s := "hello"
 	logrus.Info(unsafe.Sizeof(s))
 	logrus.Info(len(s))
+}
+
+// 测试可变长度varint的编码和解码
+func TestVarInt(t *testing.T) {
+	//bytes := gokv.VarIntEncode(666)
+	// 127, 128, 0, 12345678910
+	bytes := gokv.VarIntEncode(12345678910)
+	logrus.Info(len(bytes))
+
+	logrus.Info(bytes)
+
+	value, b := gokv.VarIntDecode(bytes)
+	logrus.Info("value: ", value)
+	logrus.Info("b: ", b)
+}
+
+// 测试 KeyValue 的编码和解码
+func TestKeyValue(t *testing.T) {
+	kv := gokv.KeyValue{
+		Key: "hello",
+		Value: "world",
+		Timestamp: time.Now().UnixNano() / 1e6,
+		Op: gokv.DEL,
+	}
+	logrus.Info(kv)
+	bytes := kv.Encode()
+	nkv, bytes := gokv.KvDecode(bytes)
+	logrus.Info(nkv)
 }

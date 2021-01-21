@@ -60,7 +60,7 @@ func (db *DB) Close() {
 	db.wal.Close()
 }
 
-func (db *DB) Get(key string) (string, error) {
+func (db *DB) Get(key string) (Value, error) {
 	value, err := db.memory.Get(key)
 	// 如果没有得到value
 	if err == nil {
@@ -80,7 +80,7 @@ func (db *DB) Put(kv KeyValue) error {
 		// 刷到磁盘
 		db.flush()
 		// TODO: 之后实现异步的flush操作
-		db.memory.memStore = make(map[string]string)
+		db.memory.memStore = make(map[string]Value)
 		// ! 这个也要重置
 		db.memory.memSize = 0
 		// 清空 wal.log 文件内容, 用直接创建的方式
@@ -113,7 +113,7 @@ func (db *DB) writeLogPut(kv KeyValue) error {
 	wal := db.wal
 	write := bufio.NewWriter(wal)
 	_, err := write.WriteString(fmt.Sprintf("%s: put {key: %s, value: %s}\n",
-		time.Now().String(), kv.Key, kv.Value))
+		time.Now().String(), kv.Key, kv.Val))
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func (db *DB) flush() error {
 	return nil
 }
 
-func (db *DB) diskGet(key string) (string, error) {
+func (db *DB) diskGet(key string) (Value, error) {
 	// 从磁盘上获取目录及文件, 然后一个一个读取
 	flushPath := db.dir + "/flush_files/"
 	_, err := os.Stat(flushPath)
