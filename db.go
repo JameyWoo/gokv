@@ -20,8 +20,8 @@ import (
 )
 
 type DB struct {
-	eng *Engine
-	wal *os.File
+	memory *Engine
+	wal    *os.File
 
 	dir string
 	walPath string
@@ -49,7 +49,7 @@ func Open(dirPath string) (*DB, error) {
 		wal = wa
 	}
 
-	return &DB{eng: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}, nil
+	return &DB{memory: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}, nil
 }
 
 func (db *DB) Close() {
@@ -57,7 +57,7 @@ func (db *DB) Close() {
 }
 
 func (db *DB) Get(key string) (string, error) {
-	value, err := db.eng.Get(key)
+	value, err := db.memory.Get(key)
 	// 如果没有得到value
 	if err == nil {
 		return value, err
@@ -69,15 +69,15 @@ func (db *DB) Get(key string) (string, error) {
 func (db *DB) Put(kv KeyValue) error {
 	// TODO: 改进写日志的方式
 	db.writeLogPut(kv)
-	db.eng.Put(kv)
+	db.memory.Put(kv)
 	// 这个阈值用常量 maxMemSize表示, maxMemSize定义在engine中, 后续改为可配置的量
-	if db.eng.memSize >= maxMemSize {
+	if db.memory.memSize >= maxMemSize {
 		// 刷到磁盘
 		db.flush()
 		// TODO: 之后实现异步的flush操作
-		db.eng.memStore = make(map[string]string)
+		db.memory.memStore = make(map[string]string)
 		// ! 这个也要重置
-		db.eng.memSize = 0
+		db.memory.memSize = 0
 	}
 	return nil
 }
@@ -85,13 +85,13 @@ func (db *DB) Put(kv KeyValue) error {
 // 删除的元素的value用特殊的字符串来代替
 func (db *DB) Delete(key string) error {
 	db.writeLogDelete(key)
-	return db.eng.Delete(key)
+	return db.memory.Delete(key)
 }
 
 // 扫描一个区间的key, 得到key value的结果slice
 // 如果value为deleted, 那么不添加
 func (db *DB) Scan(startKey, endKey string) ([]KeyValue, error) {
-	return db.eng.Scan(startKey, endKey)
+	return db.memory.Scan(startKey, endKey)
 }
 
 // Put的wal, 后续需要将WAL单独写成一个分离的结构
@@ -130,7 +130,7 @@ func (db *DB) flush() error {
 	fileId := len(files)
 
 	fileStr := ""
-	for key, val := range db.eng.memStore {
+	for key, val := range db.memory.memStore {
 		// 编码, [keyLen, key, valueLen, value]
 		keyLen, valueLen := make([]byte, 4), make([]byte, 4)
 		binary.LittleEndian.PutUint32(keyLen, uint32(len(key)))

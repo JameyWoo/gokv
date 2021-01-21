@@ -14,14 +14,20 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [x] 接口: Get, Put, Delete, Scan
 - [x] 布隆过滤器算法版 (暂不集成)
 - [x] map版 Memstore
-- [ ] 基本SSTable结构 (追加, 无序, 递增文件序号)
-- [ ] LSM-Tree结构
-- [ ] 实现key-value接口, 包括时间戳
-- [ ] 实现WAL存储 (暂不实现故障恢复功能)
+- [x] 基本SSTable结构 (追加, 无序, 递增文件序号)
+- [x] LSM-Tree结构
+- [x] 实现WAL存储 (暂不实现故障恢复功能)
 
 
-## 其他待实现的feature
+## 全部待实现的feature
 
+- [x] 接口: Get, Put, Delete, Scan
+- [x] 布隆过滤器算法版 (暂不集成)
+- [x] map版 Memstore
+- [x] 基本SSTable结构 (追加, 无序, 递增文件序号)
+- [x] 基本LSM-Tree结构
+- [x] 实现WAL存储 (暂不实现故障恢复功能)
+- [ ] 实现完整的key-value结构, 包括时间戳
 - [ ] 读取一个配置文件
 - [ ] SkipList版 Memstore
 - [ ] 支持并发的 SkipList
@@ -41,3 +47,4 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] 使用标准使用接口改造项目调用方式
 - [ ] 实现可变长度整形 varint 从而更好地压缩 (binary中有实现)
 - [ ] 实现字符串压缩算法
+- [ ] 打开数据库时增加选项设置
