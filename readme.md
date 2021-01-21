@@ -14,14 +14,15 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [x] 接口: Get, Put, Delete, Scan
 - [x] 布隆过滤器算法版 (暂不集成)
 - [x] map版 Memstore
-- [ ] 基本SSTable结构 (追加, 无序, 递增文件)
-- [ ] LSM结构
+- [ ] 基本SSTable结构 (追加, 无序, 递增文件序号)
+- [ ] LSM-Tree结构
 - [ ] 实现key-value接口, 包括时间戳
 - [ ] 实现WAL存储 (暂不实现故障恢复功能)
 
 
 ## 其他待实现的feature
 
+- [ ] 读取一个配置文件
 - [ ] SkipList版 Memstore
 - [ ] 支持并发的 SkipList
 - [ ] 有序SSTable结构
@@ -36,3 +37,7 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] SSTable的前缀压缩
 - [ ] 设计实现varint可变长度编码
 - [ ] 考虑增量设计(偏移增量等)
+- [ ] 考虑键值分离的结构, 类似boltDB
+- [ ] 使用标准使用接口改造项目调用方式
+- [ ] 实现可变长度整形 varint 从而更好地压缩
+- [ ] 实现字符串压缩算法

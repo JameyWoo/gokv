@@ -11,6 +11,7 @@ package test
 import (
 	"github.com/Jameywoo/TinyBase"
 	"github.com/sirupsen/logrus"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -24,6 +25,21 @@ func TestDbOpen(t *testing.T) {
 	db.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
 	val, _ := db.Get("hello")
 	logrus.Info(val)
+	db.Close()
+}
+
+// 测试flush的写入
+func TestFlush(t *testing.T) {
+	db, err := TinyBase.Open("db1")
+	if err != nil {
+		logrus.Error(err)
+	}
+	for i := 0; i < 1000; i++ {
+		db.Put(TinyBase.KeyValue{Key: strconv.Itoa(i) + "_key", Value: strconv.Itoa(i) + "_value"})
+	}
+	val, _ := db.Get("100_key")
+	logrus.Info(val)
+	db.Close()
 }
 
 // 时间戳

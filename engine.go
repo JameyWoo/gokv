@@ -11,9 +11,10 @@ const (
 	deleted string = "__deleted__"
 )
 
+// the memory Engine
 type Engine struct {
 	memStore map[string]string
-	memSize int  // 记录mem存储的容量
+	memSize int  // 记录mem存储的容量, put和del的时候进行计算
 }
 
 type KeyValue struct {
@@ -33,6 +34,7 @@ func (e *Engine) Get(key string) (string, error) {
 	return m, nil
 }
 
+// 这个Put只是在内存上的操作, 不涉及磁盘的操作.
 func (e *Engine) Put(kv KeyValue) error {
 	e.memStore[kv.Key] = kv.Value
 	e.memSize += len(kv.Key) + len(kv.Value)
@@ -41,7 +43,14 @@ func (e *Engine) Put(kv KeyValue) error {
 
 // 删除的元素的value用特殊的字符串来代替
 func (e *Engine) Delete(key string) error {
-	e.memStore[key] = deleted
+	val, ok := e.memStore[key]
+	if ok {
+		e.memSize = e.memSize - len(val) + len(deleted)
+		e.memStore[key] = deleted
+	} else {
+		err := e.Put(KeyValue{key, deleted})
+		return err
+	}
 	return nil
 }
 
