@@ -39,5 +39,5 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] 考虑增量设计(偏移增量等)
 - [ ] 考虑键值分离的结构, 类似boltDB
 - [ ] 使用标准使用接口改造项目调用方式
-- [ ] 实现可变长度整形 varint 从而更好地压缩
+- [ ] 实现可变长度整形 varint 从而更好地压缩 (binary中有实现)
 - [ ] 实现字符串压缩算法

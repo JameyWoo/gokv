@@ -1,14 +1,7 @@
 package TinyBase
 
 import (
-	"errors"
 	"sort"
-)
-
-const (
-	// memStore所占内存的阈值, 如果到达了该阈值则将其持久化. 暂定 1024B = 1KB
-	maxMemSize int = 1 << 10
-	deleted string = "__deleted__"
 )
 
 // the memory Engine
@@ -29,7 +22,7 @@ func NewEngine() *Engine {
 func (e *Engine) Get(key string) (string, error) {
 	m, ok := e.memStore[key]
 	if !ok {
-		return "", errors.New("no such element")
+		return "", GetEmptyError
 	}
 	return m, nil
 }

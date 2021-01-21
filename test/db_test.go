@@ -24,21 +24,30 @@ func TestDbOpen(t *testing.T) {
 	}
 	db.Put(TinyBase.KeyValue{Key: "hello", Value: "world"})
 	val, _ := db.Get("hello")
-	logrus.Info(val)
+	logrus.Info("hello: ", val)
 	db.Close()
 }
 
-// 测试flush的写入
+// 测试flush的写入以及读取
 func TestFlush(t *testing.T) {
 	db, err := TinyBase.Open("db1")
 	if err != nil {
 		logrus.Error(err)
 	}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 11000; i++ {
 		db.Put(TinyBase.KeyValue{Key: strconv.Itoa(i) + "_key", Value: strconv.Itoa(i) + "_value"})
 	}
-	val, _ := db.Get("100_key")
-	logrus.Info(val)
+	val, err := db.Get("100_key")
+	if err != nil {
+		logrus.Error(err)
+	}
+	logrus.Info("val:", val)
+
+	val, err = db.Get("10000_key")
+	if err != nil {
+		logrus.Error(err)
+	}
+	logrus.Info("val:", val)
 	db.Close()
 }
 

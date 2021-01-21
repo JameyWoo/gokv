@@ -10,11 +10,12 @@ package TinyBase
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -56,7 +57,13 @@ func (db *DB) Close() {
 }
 
 func (db *DB) Get(key string) (string, error) {
-	return db.eng.Get(key)
+	value, err := db.eng.Get(key)
+	// 如果没有得到value
+	if err == nil {
+		return value, err
+	}
+	// 从磁盘上获取value
+	return db.diskGet(key)
 }
 
 func (db *DB) Put(kv KeyValue) error {
@@ -125,10 +132,13 @@ func (db *DB) flush() error {
 	fileStr := ""
 	for key, val := range db.eng.memStore {
 		// 编码, [keyLen, key, valueLen, value]
-		fileStr += strconv.Itoa(len(key)) + key + strconv.Itoa(len(val)) + val
+		keyLen, valueLen := make([]byte, 4), make([]byte, 4)
+		binary.LittleEndian.PutUint32(keyLen, uint32(len(key)))
+		binary.LittleEndian.PutUint32(valueLen, uint32(len(val)))
+		fileStr += string(keyLen) + key + string(valueLen) + val
 	}
-	// 创建一个新文件
-	newFile, err := os.Create(flushPath + strconv.Itoa(fileId) + ".flush")
+	// 创建一个新文件, 前面补零
+	newFile, err := os.Create(flushPath + fmt.Sprintf("%010d", fileId) + ".flush")
 	if err != nil {
 		logrus.Fatal(err)
 		return err
@@ -138,6 +148,7 @@ func (db *DB) flush() error {
 		logrus.Fatal(err)
 		return err
 	}
+	_ = newFile.Sync()
 
 	if byteLen != len(fileStr) {
 		err = errors.New("byteLen != len(fileStr)")
@@ -145,4 +156,37 @@ func (db *DB) flush() error {
 		return err
 	}
 	return nil
+}
+
+func (db *DB) diskGet(key string) (string, error) {
+	// 从磁盘上获取目录及文件, 然后一个一个读取
+	flushPath := db.dir + "/flush_files/"
+	_, err := os.Stat(flushPath)
+	if os.IsNotExist(err) {
+		// create
+		os.Mkdir(flushPath, os.ModePerm)
+	}
+	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
+	for ii := 0; ii < len(files); ii++ {
+		bytes, err := ioutil.ReadFile(flushPath + files[ii].Name())
+		//logrus.Info(flushPath + files[ii].Name())
+		if err != nil {
+			logrus.Error(err)
+		}
+		// 解码
+		i := 0
+		for i < len(bytes) {
+			keyLen := int(binary.LittleEndian.Uint32(bytes[i: i + 4]))
+			theKey := string(bytes[i + 4: i + 4 + keyLen])
+			//logrus.Info("theKey: ", theKey)
+			i = i + 4 + keyLen
+			valLen := int(binary.LittleEndian.Uint32(bytes[i: i + 4]))
+			if theKey == key {
+				return string(bytes[i + 4: i + 4 + valLen]), nil
+			} else {
+				i = i + 4 + valLen
+			}
+		}
+	}
+	return "", GetEmptyError
 }
