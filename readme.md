@@ -27,7 +27,7 @@ A persistent, LSM tree structured key value database engine implemented by go la
 
 ### todo
 
-- [ ] 读取一个配置文件
+- [x] 读取一个配置文件
 - [ ] 有序SSTable结构
 - [ ] 使用标准使用接口改造项目调用方式, 例如支持opt
 - [ ] 实现完整的key-value结构, 包括时间戳

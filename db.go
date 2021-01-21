@@ -70,8 +70,8 @@ func (db *DB) Put(kv KeyValue) error {
 	// TODO: 改进写日志的方式
 	db.writeLogPut(kv)
 	db.memory.Put(kv)
-	// 这个阈值用常量 maxMemSize表示, maxMemSize定义在engine中, 后续改为可配置的量
-	if db.memory.memSize >= maxMemSize {
+	// 这个阈值用常量 MaxMemSize表示, MaxMemSize定义在配置文件中, 后续改为可配置的量
+	if db.memory.memSize >= config.MaxMemSize {
 		// 刷到磁盘
 		db.flush()
 		// TODO: 之后实现异步的flush操作

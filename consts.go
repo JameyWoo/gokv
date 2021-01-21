@@ -9,7 +9,5 @@
 package gokv
 
 const (
-	// memStore所占内存的阈值, 如果到达了该阈值则将其持久化. 暂定 1024B = 1KB
-	maxMemSize int = 1 << 15
 	deleted string = "__deleted__"
 )
