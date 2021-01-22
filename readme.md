@@ -28,11 +28,11 @@ A persistent, LSM tree structured key value database engine implemented by go la
 ### todo
 
 - [x] 读取一个配置文件
-- [ ] 有序SSTable结构
+- [x] 有序SSTable结构
 - [ ] 使用标准使用接口改造项目调用方式, 例如支持opt
-- [ ] 实现完整的key-value结构, 包括时间戳
+- [x] 实现完整的key-value结构, 包括时间戳
 - [ ] 实现基于WAL的故障恢复(启动时从内存恢复)
-- [ ] 设计实现varint可变长度编码
+- [x] 设计实现varint可变长度编码
 - [ ] 打开数据库时增加选项设置
 - [ ] SkipList版 Memstore
 - [ ] Compaction基本实现(按时间线与文件大小, hbase的基本策略)
@@ -67,3 +67,4 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] 实现可变长度整形 varint 从而更好地压缩 (binary中有实现)
 - [ ] 实现字符串压缩算法
 - [ ] 打开数据库时增加选项设置
+- [ ] 分块读文件, 分块处理

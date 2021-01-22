@@ -2,7 +2,6 @@ package gokv
 
 import (
 	"sort"
-	"time"
 )
 
 // the memory Engine
@@ -114,18 +113,18 @@ func (e *Engine) Put(kv KeyValue) error {
 }
 
 // 删除的元素的value用特殊的字符串来代替
-func (e *Engine) Delete(key string) error {
+func (e *Engine) Delete(key string, delTime int64) error {
 	val, ok := e.memStore[key]
 	if ok {
 		// 这里调整大小只需要调整字符串的大小
 		e.memSize = e.memSize - len(val.Value) + len(deleted)
-		e.memStore[key] = Value{Value: deleted, Timestamp: time.Now().UnixNano() / 1e6, Op: DEL}
+		e.memStore[key] = Value{Value: deleted, Timestamp: delTime, Op: DEL}
 	} else {
 		err := e.Put(KeyValue{
 			Key: key,
 			Val: Value{
 				Value: deleted,
-				Timestamp: time.Now().UnixNano() / 1e6,
+				Timestamp: delTime,
 				Op: DEL,
 			},
 		})

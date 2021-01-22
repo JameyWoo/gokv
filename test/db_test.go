@@ -30,7 +30,7 @@ func TestDbOpen(t *testing.T) {
 
 // 测试flush的写入以及读取
 func TestFlush(t *testing.T) {
-	db, err := gokv.Open("db1")
+	db, err := gokv.Open("db2")
 	if err != nil {
 		logrus.Error(err)
 	}

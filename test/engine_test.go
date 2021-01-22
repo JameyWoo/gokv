@@ -15,14 +15,14 @@ import (
 func TestEnginePut(t *testing.T) {
 	e := gokv.NewEngine()
 	_ = e.Put(gokv.KeyValue{Key: "hello",
-		Val: gokv.Value{"world", time.Now().UnixNano() / 1e6, gokv.SET}})
+		Val: gokv.Value{"world", time.Now().UnixNano() / 1e6, gokv.PUT}})
 	logrus.Info(e)
 }
 
 func TestEngineGet(t *testing.T) {
 	e := gokv.NewEngine()
 	_ = e.Put(gokv.KeyValue{Key: "hello",
-		Val: gokv.Value{"world", time.Now().UnixNano() / 1e6, gokv.SET}})
+		Val: gokv.Value{"world", time.Now().UnixNano() / 1e6, gokv.PUT}})
 
 	val, err := e.Get("hello")
 	if err != nil {

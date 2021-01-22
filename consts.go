@@ -15,6 +15,6 @@ const (
 type Op byte
 
 const (
-	SET Op = 0
+	PUT Op = 0
 	DEL
 )
