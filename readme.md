@@ -33,7 +33,7 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [x] 实现完整的key-value结构, 包括时间戳
 - [x] 实现基于WAL的故障恢复(启动时从内存恢复)
 - [x] 设计实现varint可变长度编码
-- [ ] SkipList版 Memstore
+- [x] SkipList版 Memstore
 
 
 ## 全部待实现的feature
@@ -46,7 +46,7 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [x] 实现WAL存储 (暂不实现故障恢复功能)
 - [x] 实现完整的key-value结构, 包括时间戳
 - [x] 读取一个配置文件
-- [ ] SkipList版 Memstore
+- [x] SkipList版 Memstore
 - [ ] 支持并发的 SkipList
 - [x] 有序SSTable结构
 - [ ] 集成Bloom Filter

@@ -25,13 +25,14 @@ type SkipListNode struct {
 // 一个完整的跳跃表结构
 type SkipList struct {
 	maxLevel int  // 最大的层级
+	len int  // 元素的个数
 	head, tail *SkipListNode  // 跳跃表的头和尾
 }
 
 // 这个maxLevel有一个默认值.
 // 这个值应该是可以配置的
 func NewSkipList() *SkipList {
-	sl := &SkipList{maxLevel: 3, head: &SkipListNode{key: "head"}, tail: &SkipListNode{key: "tail"}}
+	sl := &SkipList{maxLevel: 3, len: 0, head: &SkipListNode{key: "head"}, tail: &SkipListNode{key: "tail"}}
 	// 初始化 head和tail的指针
 	for i := 0; i <= sl.maxLevel; i++ {
 		sl.head.pointers = append(sl.head.pointers, sl.tail)
@@ -46,6 +47,7 @@ type pNode struct {
 
 // 插入一个KeyValue
 func (sl *SkipList) Put(kv KeyValue) {
+	sl.len++
 	key := kv.Key
 	p := sl.head
 	level := sl.maxLevel
@@ -143,6 +145,11 @@ func (sl *SkipList) FindGE(key string) KeyValue {
 		}
 	}
 	return KeyValue{}
+}
+
+// 元素的个数
+func (sl *SkipList) Len() int {
+	return sl.len
 }
 
 // 获取一个随机的高度值

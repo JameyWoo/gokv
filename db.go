@@ -15,13 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
-	"sort"
 	"time"
 )
 
 type DB struct {
-	memory *Engine
-	wal    *os.File
+	memDB *MemDB
+	wal   *os.File
 
 	dir string
 	walPath string
@@ -43,7 +42,7 @@ func Open(dirPath string) (*DB, error) {
 	}
 	wal = wa
 
-	db := &DB{memory: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}
+	db := &DB{memDB: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}
 	err = db.recoveryDB()
 	if err != nil {
 		logrus.Error(err)
@@ -97,7 +96,7 @@ func (db *DB) Close() {
 }
 
 func (db *DB) Get(key string) (Value, error) {
-	value, err := db.memory.Get(key)
+	value, err := db.memDB.Get(key)
 	// 如果没有得到value
 	if err == nil {
 		return value, err
@@ -114,15 +113,15 @@ func (db *DB) Put(key, value string) error {
 func (db *DB) put(kv KeyValue) error {
 	// TODO: 改进写日志的方式
 	db.writeAheadLog(kv)
-	db.memory.Put(kv)
+	db.memDB.Put(kv)
 	// 这个阈值用常量 MaxMemSize表示, MaxMemSize定义在配置文件中, 后续改为可配置的量
-	if db.memory.memSize >= config.MaxMemSize {
+	if db.memDB.memSize >= config.MaxMemSize {
 		// 刷到磁盘
 		db.flush()
 		// TODO: 之后实现异步的flush操作
-		db.memory.memStore = make(map[string]Value)
+		db.memDB.memStore = NewSkipList()
 		// ! 这个也要重置
-		db.memory.memSize = 0
+		db.memDB.memSize = 0
 		// 清空 wal.log 文件内容, 用直接创建的方式
 		// Create creates or truncates the named file. If the file already exists, it is truncated.
 		wal, err := os.Create(db.walPath)
@@ -140,14 +139,15 @@ func (db *DB) put(kv KeyValue) error {
 func (db *DB) Delete(key string) error {
 	delTime := time.Now().UnixNano() / 1e6
 	db.writeAheadLog(KeyValue{Key: key, Val: Value{"", delTime, DEL}})
-	return db.memory.Delete(key, delTime)
+	return db.memDB.Delete(key, delTime)
 }
 
+// 暂时不需要区间扫描
 // 扫描一个区间的key, 得到key value的结果slice
 // 如果value为deleted, 那么不添加
-func (db *DB) Scan(startKey, endKey string) ([]KeyValue, error) {
-	return db.memory.Scan(startKey, endKey)
-}
+//func (db *DB) Scan(startKey, endKey string) ([]KeyValue, error) {
+//	return db.memDB.Scan(startKey, endKey)
+//}
 
 func (db *DB) writeAheadLog(kv KeyValue) error {
 	write := bufio.NewWriter(db.wal)
@@ -172,20 +172,13 @@ func (db *DB) flush() error {
 
 	fileBytes := make([]byte, 0)
 
-	// 有序地flush
-	keys := make([]string, 0, len(db.memory.memStore))
-	for key, _ := range db.memory.memStore {
-		if key == "" {
-			continue
+	// 使用迭代器, 有序(从小到大)地编码
+	it := db.memDB.memStore.NewIterator()
+	for {
+		kv, ok := it.Next()
+		if !ok {
+			break
 		}
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		// 编码, [varint_key, key, varint_value, value, Timestamp, Op]
-		kv := KeyValue{Key: key, Val: db.memory.memStore[key]}
-		//logrus.Info(kv.Key)
 		kvBytes := kv.Encode()
 		fileBytes = append(fileBytes, kvBytes...)
 	}
