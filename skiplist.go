@@ -8,7 +8,10 @@
 
 package gokv
 
-import "math/rand"
+import (
+	"math/rand"
+	"time"
+)
 
 // 一个跳跃表的节点
 // level 从0开始
@@ -28,7 +31,7 @@ type SkipList struct {
 // 这个maxLevel有一个默认值.
 // 这个值应该是可以配置的
 func NewSkipList() *SkipList {
-	sl := &SkipList{maxLevel: 5, head: &SkipListNode{key: "head"}, tail: &SkipListNode{key: "tail"}}
+	sl := &SkipList{maxLevel: 3, head: &SkipListNode{key: "head"}, tail: &SkipListNode{key: "tail"}}
 	// 初始化 head和tail的指针
 	for i := 0; i <= sl.maxLevel; i++ {
 		sl.head.pointers = append(sl.head.pointers, sl.tail)
@@ -57,9 +60,22 @@ func (sl *SkipList) Put(kv KeyValue) {
 			// 当 level为0的时候, 就插入
 			if level == 0 {
 				h := sl.randHeight()  // 获取随机高度, 从0开始
-				last := len(pathNodes) - 1
+
 				now := &SkipListNode{key: kv.Key, value: kv.Val, level: h, pointers: make([]*SkipListNode, 0)}
 				// TODO: 考虑h超过maxLevel的情况
+				// 如果随机得到的高度比目前的最大高度要大, 那么为head和tail创建新的高度
+				if h > sl.maxLevel {
+					sub := h - sl.maxLevel
+					pathNodes2 := make([]pNode, 0, sub)
+					for i := 0; i < sub; i++ {
+						sl.head.pointers = append(sl.head.pointers, sl.tail)
+						pathNodes2 = append(pathNodes2, pNode{node: sl.head, l: h - i})
+					}
+					pathNodes = append(pathNodes2, pathNodes...)
+					sl.maxLevel = h
+				}
+
+				last := len(pathNodes) - 1
 				for i := last; i >= last - h; i-- {
 					node := pathNodes[i].node
 					l := pathNodes[i].l
@@ -131,6 +147,8 @@ func (sl *SkipList) FindGE(key string) KeyValue {
 
 // 获取一个随机的高度值
 func (sl *SkipList) randHeight() int {
+	// 设置随机种子
+	rand.Seed(time.Now().UnixNano())
 	// bias 可以调整. 这个值越大, skiplist越稀疏
 	bias := 2
 	h := 0
