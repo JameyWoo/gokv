@@ -3,7 +3,7 @@
  * @Email: 2622075127wjh@gmail.com
  * @Date: 2021/1/21
  * @Desc: 保存一些全局的常量, 后续改为配置
- * @Copyright (c) 2020, JameyWoo. All rights reserved.
+ * @Copyright (c) 2021, JameyWoo. All rights reserved.
  */
 
 package gokv

@@ -29,13 +29,11 @@ A persistent, LSM tree structured key value database engine implemented by go la
 
 - [x] 读取一个配置文件
 - [x] 有序SSTable结构
-- [ ] 使用标准使用接口改造项目调用方式, 例如支持opt
+- [x] 使用标准使用接口(如参考leveldb)改造项目调用方式
 - [x] 实现完整的key-value结构, 包括时间戳
-- [ ] 实现基于WAL的故障恢复(启动时从内存恢复)
+- [x] 实现基于WAL的故障恢复(启动时从内存恢复)
 - [x] 设计实现varint可变长度编码
-- [ ] 打开数据库时增加选项设置
 - [ ] SkipList版 Memstore
-- [ ] Compaction基本实现(按时间线与文件大小, hbase的基本策略)
 
 
 ## 全部待实现的feature
@@ -46,13 +44,13 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [x] 基本SSTable结构 (追加, 无序, 递增文件序号)
 - [x] 基本LSM-Tree结构
 - [x] 实现WAL存储 (暂不实现故障恢复功能)
-- [ ] 实现完整的key-value结构, 包括时间戳
+- [x] 实现完整的key-value结构, 包括时间戳
 - [x] 读取一个配置文件
 - [ ] SkipList版 Memstore
 - [ ] 支持并发的 SkipList
-- [ ] 有序SSTable结构
+- [x] 有序SSTable结构
 - [ ] 集成Bloom Filter
-- [ ] 实现基于WAL的故障恢复(内存)
+- [x] 实现基于WAL的故障恢复(内存)
 - [ ] 完整SSTable结构(带索引, 暂不分块)
 - [ ] 分块的SSTable结构
 - [ ] 内存的blockCache缓存
@@ -60,11 +58,10 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] Compaction基本实现(按时间线与文件大小, hbase的基本策略)
 - [ ] Compaction多种策略的实现
 - [ ] SSTable的前缀压缩
-- [ ] 设计实现varint可变长度编码
+- [x] 设计实现varint可变长度编码
 - [ ] 考虑增量设计(偏移增量等)
 - [ ] 考虑键值分离的结构, 类似boltDB
-- [ ] 使用标准使用接口改造项目调用方式, 例如支持opt
+- [x] 使用标准使用接口(如参考leveldb)改造项目调用方式
 - [ ] 实现可变长度整形 varint 从而更好地压缩 (binary中有实现)
 - [ ] 实现字符串压缩算法
-- [ ] 打开数据库时增加选项设置
 - [ ] 分块读文件, 分块处理
