@@ -2,43 +2,9 @@
 
 A persistent, LSM tree structured key value database engine implemented by go language.
 
-## Dev log
-
-## v0.1.0
-
-### target
-
-先实现框架, 接口. 对每个接口的具体实现不做要求, 后续再改进. 
-
-### todo
-- [x] 接口: Get, Put, Delete, Scan
-- [x] 布隆过滤器算法版 (暂不集成)
-- [x] map版 Memstore
-- [x] 基本SSTable结构 (追加, 无序, 递增文件序号)
-- [x] LSM-Tree结构
-- [x] 实现WAL存储 (暂不实现故障恢复功能)
-
-
-## v0.2.0
-
-### target 
-
-针对某些点进行改善, 实现更多的功能和完整性
-
-### todo
-
-- [x] 读取一个配置文件
-- [x] 有序SSTable结构
-- [x] 使用标准使用接口(如参考leveldb)改造项目调用方式
-- [x] 实现完整的key-value结构, 包括时间戳
-- [x] 实现基于WAL的故障恢复(启动时从内存恢复)
-- [x] 设计实现varint可变长度编码
-- [x] SkipList版 Memstore
-
-
 ## 全部待实现的feature
 
-- [x] 接口: Get, Put, Delete, Scan
+- [x] 接口: Get, Put, Delete
 - [x] 布隆过滤器算法版 (暂不集成)
 - [x] map版 Memstore
 - [x] 基本SSTable结构 (追加, 无序, 递增文件序号)
@@ -65,3 +31,48 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] 实现可变长度整形 varint 从而更好地压缩 (binary中有实现)
 - [ ] 实现字符串压缩算法
 - [ ] 分块读文件, 分块处理
+
+## Dev log
+
+## v0.3.0
+
+### target
+
+设计成熟的, 分块的SSTable结构, 每次按块读取, 且文件有索引
+
+### todo
+
+- [ ] 完整SSTable结构(带索引, 暂不分块)
+- [ ] 分块的SSTable结构
+- [ ] 分块读文件, 分块处理
+
+## v0.2.0
+
+### target 
+
+针对某些点进行改善, 实现更多的功能和完整性
+
+### todo
+
+- [x] 读取一个配置文件
+- [x] 有序SSTable结构
+- [x] 使用标准使用接口(如参考leveldb)改造项目调用方式
+- [x] 实现完整的key-value结构, 包括时间戳
+- [x] 实现基于WAL的故障恢复(启动时从内存恢复)
+- [x] 设计实现varint可变长度编码
+- [x] SkipList版 Memstore
+
+
+## v0.1.0
+
+### target
+
+先实现框架, 接口. 对每个接口的具体实现不做要求, 后续再改进. 
+
+### todo
+- [x] 接口: Get, Put, Delete, Scan
+- [x] 布隆过滤器算法版 (暂不集成)
+- [x] map版 Memstore
+- [x] 基本SSTable结构 (追加, 无序, 递增文件序号)
+- [x] LSM-Tree结构
+- [x] 实现WAL存储 (暂不实现故障恢复功能)
