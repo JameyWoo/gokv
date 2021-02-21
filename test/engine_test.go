@@ -39,11 +39,11 @@ func TestEngineGet(t *testing.T) {
 
 //func TestEngineDelete(t *testing.T) {
 //	e := gokv.NewEngine()
-//	_ = e.Put(gokv.KeyValue{Key: "hello", Value: "world"})
-//	_ = e.Put(gokv.KeyValue{Key: "fuck", Value: "you"})
-//	_ = e.Put(gokv.KeyValue{Key: "do", Value: "it"})
-//	_ = e.Put(gokv.KeyValue{Key: "left", Value: "right"})
-//	_ = e.Put(gokv.KeyValue{Key: "shutdown", Value: "away"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "hello", Value: "world"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "fuck", Value: "you"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "do", Value: "it"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "left", Value: "right"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "shutdown", Value: "away"})
 //
 //	sr, err := e.Scan("", "z")
 //	if err != nil {

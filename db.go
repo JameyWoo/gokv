@@ -222,7 +222,7 @@ func (db *DB) diskGet(key string) (Value, error) {
 		for len(bytes) != 0 {
 			kv := KeyValue{}
 			kv, bytes = KvDecode(bytes)
-			//logrus.Infof("key: %s, val: %s", kv.Key, kv.Val.Value)
+			//logrus.Infof("Key: %s, val: %s", kv.LruKey, kv.Val.Value)
 			if key == kv.Key {
 				return kv.Val, nil
 			}

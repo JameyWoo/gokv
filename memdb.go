@@ -147,11 +147,11 @@ func (e *MemDB) Delete(key string, delTime int64) error {
 //	kvs := make([]KeyValue, 0)
 //	for _, k := range keys {
 //		if k >= startKey && k <= endKey {
-//			value := e.memStore[k]
-//			if value.Value == deleted {  // 如果已删除
+//			Value := e.memStore[k]
+//			if Value.Value == deleted {  // 如果已删除
 //				continue
 //			}
-//			kvs = append(kvs, KeyValue{Key: k, Val: value})
+//			kvs = append(kvs, KeyValue{LruKey: k, Val: Value})
 //		}
 //		if k > endKey {
 //			break

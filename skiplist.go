@@ -92,8 +92,8 @@ func (sl *SkipList) Put(kv KeyValue) {
 			level--
 		} else if key > p.pointers[level].key {  // 当key比当前的节点的下一个节点的值大, 那么指针向右
 			p = p.pointers[level]
-		} else {  // key 和 下一节点相等, 可以返回结果了
-			// 这种情况是 key 已经存在在跳跃表中. 那么只需要修改其Value
+		} else {  // Key 和 下一节点相等, 可以返回结果了
+			// 这种情况是 Key 已经存在在跳跃表中. 那么只需要修改其Value
 			p.pointers[level].value = kv.Val
 			return
 		}
@@ -117,7 +117,7 @@ func (sl *SkipList) Get(key string) (KeyValue, bool) {
 			level--
 		} else if key > p.pointers[level].key {  // 当key比当前的节点的下一个节点的值大, 那么指针向右
 			p = p.pointers[level]
-		} else {  // key 和 下一节点相等, 可以返回结果了
+		} else {  // Key 和 下一节点相等, 可以返回结果了
 			return KeyValue{Key: key, Val: p.pointers[level].value}, true
 		}
 	}
@@ -140,7 +140,7 @@ func (sl *SkipList) FindGE(key string) KeyValue {
 			level--
 		} else if key > p.pointers[level].key {  // 当key比当前的节点的下一个节点的值大, 那么指针向右
 			p = p.pointers[level]
-		} else {  // key 和 下一节点相等, 可以返回结果了
+		} else {  // Key 和 下一节点相等, 可以返回结果了
 			return KeyValue{Key: p.pointers[level].key, Val: p.pointers[level].value}
 		}
 	}
