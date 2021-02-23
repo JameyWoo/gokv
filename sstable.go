@@ -15,3 +15,24 @@ package gokv
 
 
  */
+
+
+// sstable, 每个sstable结构对应一个sstable文件.
+// sstable文件根据传入的内存memtable将
+type SSTable struct {
+	name string
+	writer SstWriter
+	
+}
+
+
+// sstable 的写类
+type SstWriter struct {
+
+}
+
+
+// sstable 的读类
+type SstReader struct {
+
+}

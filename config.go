@@ -10,6 +10,7 @@ package gokv
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
@@ -19,12 +20,14 @@ var config *conf
 func init() {
 	var c conf
 	config = c.getConf()
-	//fmt.Println(config.MaxMemSize)
+	logrus.Info("MaxMemSize: ", config.MaxMemSize)
+	logrus.Info("DataBlockSize: ", config.DataBlockSize)
 }
 
 //profile variables
 type conf struct {
 	MaxMemSize int `yaml:"MaxMemSize"`  // 注意一定要是大写
+	DataBlockSize int `yaml:"DataBlockSize"`
 }
 
 func (c *conf) getConf() *conf {

@@ -130,6 +130,13 @@ func (e *MemDB) Delete(key string, delTime int64) error {
 	return nil
 }
 
+
+// 实现迭代器, 因为从memdb到sstable这个过程需要遍历所有的key-value
+func (e *MemDB) NewIterator() *Iterator {
+	return e.memStore.NewIterator()
+}
+
+
 // 先注释掉, 这部分暂时不需要
 // 扫描一个区间的key, 得到key value的结果slice
 // 如果value为deleted, 那么不添加

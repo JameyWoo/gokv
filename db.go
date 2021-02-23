@@ -106,6 +106,7 @@ func (db *DB) Get(key string) (Value, error) {
 }
 
 func (db *DB) Put(key, value string) error {
+	// 时间戳, 以ms为单位. 但是如果在同一ms内对同一个值的不同操作的话, 应该怎么办?
 	return db.put(KeyValue{Key: key,
 		Val: Value{Value: value, Timestamp: time.Now().UnixNano() / 1e6, Op: PUT}})
 }
@@ -229,4 +230,8 @@ func (db *DB) diskGet(key string) (Value, error) {
 		}
 	}
 	return Value{}, GetEmptyError
+}
+
+func (db *DB) MemIterator() *Iterator {
+	return db.memDB.NewIterator()
 }
