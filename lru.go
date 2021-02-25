@@ -22,9 +22,9 @@ type LruValue struct {
 
 // Lru 双向链表的节点. 链表头部为最近被访问的, 尾部为应该剔除的
 type LruNode struct {
-	k LruKey  // 键
-	v LruValue  // 值
-	prev *LruNode  // 双向链表
+	k    LruKey   // 键
+	v    LruValue // 值
+	prev *LruNode // 双向链表
 	next *LruNode
 }
 
@@ -34,15 +34,15 @@ func (k *LruKey) Compare(k2 *LruKey) bool {
 
 // LRU 结构
 type Lru struct {
-	size int  // LRU容纳的元素数量
-	dl *LruNode  // 双向链表
-	m map[LruKey]*LruNode
+	size int      // LRU容纳的元素数量
+	dl   *LruNode // 双向链表
+	m    map[LruKey]*LruNode
 }
 
 func (l *Lru) Insert(lk LruKey, lv LruValue) {
 	// 先判断 lk 是否在l.m中
 	node, ok := l.m[lk]
-	if !ok {  // 如果不在hash表里面, 则直接插入新节点
+	if !ok { // 如果不在hash表里面, 则直接插入新节点
 		// 如果链表为空
 		if l.dl == nil {
 			l.dl = &LruNode{k: lk, v: lv}
@@ -50,7 +50,7 @@ func (l *Lru) Insert(lk LruKey, lv LruValue) {
 			l.dl.next = l.dl
 
 			l.m[lk] = l.dl
-		} else {  // 如果不为空
+		} else { // 如果不为空
 			tmp := &LruNode{k: lk, v: lv}
 			tmp.prev = l.dl.prev
 			tmp.next = l.dl
@@ -65,9 +65,9 @@ func (l *Lru) Insert(lk LruKey, lv LruValue) {
 			delKey := l.dl.prev.k
 			l.dl.prev.prev.next = l.dl
 			l.dl.prev = l.dl.prev.prev
-			delete(l.m, delKey)  // 更新 hash表
+			delete(l.m, delKey) // 更新 hash表
 		}
-	} else {  // 否则修改旧节点, 将旧节点提前
+	} else { // 否则修改旧节点, 将旧节点提前
 		node.prev.next = node.next
 		node.next.prev = node.prev
 

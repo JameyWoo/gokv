@@ -22,7 +22,7 @@ type DB struct {
 	memDB *MemDB
 	wal   *os.File
 
-	dir string
+	dir     string
 	walPath string
 }
 
@@ -168,7 +168,7 @@ func (db *DB) flush() error {
 		// create
 		os.Mkdir(flushPath, os.ModePerm)
 	}
-	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
+	files, _ := ioutil.ReadDir(flushPath) // 编号从0开始
 	fileId := len(files)
 
 	fileBytes := make([]byte, 0)
@@ -212,7 +212,7 @@ func (db *DB) diskGet(key string) (Value, error) {
 		// create
 		os.Mkdir(flushPath, os.ModePerm)
 	}
-	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
+	files, _ := ioutil.ReadDir(flushPath) // 编号从0开始
 	for ii := 0; ii < len(files); ii++ {
 		bytes, err := ioutil.ReadFile(flushPath + files[ii].Name())
 		if err != nil {

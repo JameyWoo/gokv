@@ -3,11 +3,11 @@ package gokv
 // the memDB MemDB
 type MemDB struct {
 	memStore *SkipList
-	memSize int  // 记录mem存储的容量, put和del的时候进行计算
+	memSize  int // 记录mem存储的容量, put和del的时候进行计算
 }
 
 type KeyValue struct {
-	Key       string
+	Key string
 	Val Value
 }
 
@@ -49,28 +49,28 @@ func (kv *KeyValue) Encode() []byte {
 func KvDecode(bytes []byte) (KeyValue, []byte) {
 	kv := KeyValue{}
 	keyLen, bytes := VarIntDecode(bytes)
-	kv.Key = string(bytes[0: keyLen])
+	kv.Key = string(bytes[0:keyLen])
 	valueLen, bytes := VarIntDecode(bytes[keyLen:])
-	kv.Val.Value = string(bytes[0: valueLen])
+	kv.Val.Value = string(bytes[0:valueLen])
 
-	timeBytes := bytes[valueLen: valueLen + 8]
+	timeBytes := bytes[valueLen : valueLen+8]
 	kv.Val.Timestamp = 0
 	bias := 1
 	for i := 0; i < len(timeBytes); i++ {
 		kv.Val.Timestamp += int64(int(timeBytes[i]) * bias)
 		bias *= 256
 	}
-	kv.Val.Op = Op(bytes[valueLen + 8])
-	return kv, bytes[valueLen + 9:]
+	kv.Val.Op = Op(bytes[valueLen+8])
+	return kv, bytes[valueLen+9:]
 }
 
 func VarIntEncode(x int) []byte {
 	bytes := make([]byte, 0)
 	for x >= 0x80 {
-		bytes = append(bytes, byte(x % 0x80))
+		bytes = append(bytes, byte(x%0x80))
 		x /= 0x80
 	}
-	bytes = append(bytes, byte(x + 0x80))
+	bytes = append(bytes, byte(x+0x80))
 	return bytes
 }
 
@@ -84,8 +84,8 @@ func VarIntDecode(bytes []byte) (int, []byte) {
 		bias *= 0x80
 		i++
 	}
-	val += bias * int(bytes[i] - 0x80)
-	return val, bytes[i + 1:]
+	val += bias * int(bytes[i]-0x80)
+	return val, bytes[i+1:]
 }
 
 func NewEngine() *MemDB {
@@ -120,9 +120,9 @@ func (e *MemDB) Delete(key string, delTime int64) error {
 		err := e.Put(KeyValue{
 			Key: key,
 			Val: Value{
-				Value: deleted,
+				Value:     deleted,
 				Timestamp: delTime,
-				Op: DEL,
+				Op:        DEL,
 			},
 		})
 		return err
@@ -130,12 +130,10 @@ func (e *MemDB) Delete(key string, delTime int64) error {
 	return nil
 }
 
-
 // 实现迭代器, 因为从memdb到sstable这个过程需要遍历所有的key-value
 func (e *MemDB) NewIterator() *Iterator {
 	return e.memStore.NewIterator()
 }
-
 
 // 先注释掉, 这部分暂时不需要
 // 扫描一个区间的key, 得到key value的结果slice

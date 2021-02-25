@@ -36,7 +36,7 @@ func TestFlush(t *testing.T) {
 	}
 	defer db.Close()
 	for i := 0; i < 1100; i++ {
-		db.Put(strconv.Itoa(i) + "_key", strconv.Itoa(i) + "_value")
+		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
 	}
 	val, err := db.Get("100_key")
 	if err != nil {
@@ -55,7 +55,7 @@ func TestFlush(t *testing.T) {
 func TestTimeChuo(t *testing.T) {
 	logrus.Info(time.Now().UnixNano())
 	logrus.Info(time.Now().Unix())
-	logrus.Info("毫秒: ", time.Now().UnixNano() / 1e6)
+	logrus.Info("毫秒: ", time.Now().UnixNano()/1e6)
 }
 
 func BenchmarkDbOpen(b *testing.B) {

@@ -3,15 +3,14 @@ package gokv
 import "github.com/howeyc/crc16"
 
 // 所有的哈希函数
-var fs = [...]func(data []byte)uint16 {crc16.ChecksumCCITT, crc16.ChecksumCCITTFalse,
+var fs = [...]func(data []byte) uint16{crc16.ChecksumCCITT, crc16.ChecksumCCITTFalse,
 	crc16.ChecksumIBM, crc16.ChecksumMBus, crc16.ChecksumSCSI}
 
-
 type BloomFilter struct {
-	m int  // 布隆过滤器的长度（如比特数组的大小）
-	k int  // 哈希的次数
-	h int  // 使用的hash函数的数量, 默认3个
-	cnt int  // 已经过滤元素的数量
+	m     int // 布隆过滤器的长度（如比特数组的大小）
+	k     int // 哈希的次数
+	h     int // 使用的hash函数的数量, 默认3个
+	cnt   int // 已经过滤元素的数量
 	array []bool
 }
 
@@ -60,4 +59,25 @@ func (bf BloomFilter) GetHashIndex(s string) []int {
 	}
 	//log.Println(idx)
 	return idx
+}
+
+// 将 [1, 0, 0, 0, 1, 1, 0, 1,    1, 1, 1, 1, 0, 0, 0, 0]
+// 编码成 10110001, 00001111
+func (bf *BloomFilter) encode() []byte {
+	content := make([]byte, 0, len(bf.array) / 8)
+	for i := 0; i < bf.m; i += 8 {
+		var b byte = 0
+		for j := i; j < i + 8; j++ {
+			if bf.array[j] {
+				b |= byte(0x1 << j)
+			}
+		}
+		content = append(content, b)
+	}
+	return content
+}
+
+// 解码
+func (bf *BloomFilter) decode(content []byte) {
+
 }

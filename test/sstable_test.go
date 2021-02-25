@@ -23,7 +23,7 @@ func TestSstableWrite(t *testing.T) {
 	}
 	defer db.Close()
 	for i := 0; i < 1100; i++ {
-		db.Put(strconv.Itoa(i) + "_key", strconv.Itoa(i) + "_value")
+		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
 	}
 	iter := db.MemIterator()
 	for {

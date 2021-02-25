@@ -16,17 +16,17 @@ import (
 // 一个跳跃表的节点
 // level 从0开始
 type SkipListNode struct {
-	key string
-	value Value
-	level int
+	key      string
+	value    Value
+	level    int
 	pointers []*SkipListNode
 }
 
 // 一个完整的跳跃表结构
 type SkipList struct {
-	maxLevel int  // 最大的层级
-	len int  // 元素的个数
-	head, tail *SkipListNode  // 跳跃表的头和尾
+	maxLevel   int           // 最大的层级
+	len        int           // 元素的个数
+	head, tail *SkipListNode // 跳跃表的头和尾
 }
 
 // 这个maxLevel有一个默认值.
@@ -42,7 +42,7 @@ func NewSkipList() *SkipList {
 
 type pNode struct {
 	node *SkipListNode
-	l int
+	l    int
 }
 
 // 插入一个KeyValue
@@ -61,7 +61,7 @@ func (sl *SkipList) Put(kv KeyValue) {
 
 			// 当 level为0的时候, 就插入
 			if level == 0 {
-				h := sl.randHeight()  // 获取随机高度, 从0开始
+				h := sl.randHeight() // 获取随机高度, 从0开始
 
 				now := &SkipListNode{key: kv.Key, value: kv.Val, level: h, pointers: make([]*SkipListNode, 0)}
 				// TODO: 考虑h超过maxLevel的情况
@@ -78,7 +78,7 @@ func (sl *SkipList) Put(kv KeyValue) {
 				}
 
 				last := len(pathNodes) - 1
-				for i := last; i >= last - h; i-- {
+				for i := last; i >= last-h; i-- {
 					node := pathNodes[i].node
 					l := pathNodes[i].l
 					next := node.pointers[l]
@@ -90,9 +90,9 @@ func (sl *SkipList) Put(kv KeyValue) {
 			}
 			// 指针下移
 			level--
-		} else if key > p.pointers[level].key {  // 当key比当前的节点的下一个节点的值大, 那么指针向右
+		} else if key > p.pointers[level].key { // 当key比当前的节点的下一个节点的值大, 那么指针向右
 			p = p.pointers[level]
-		} else {  // Key 和 下一节点相等, 可以返回结果了
+		} else { // Key 和 下一节点相等, 可以返回结果了
 			// 这种情况是 Key 已经存在在跳跃表中. 那么只需要修改其Value
 			p.pointers[level].value = kv.Val
 			return
@@ -115,9 +115,9 @@ func (sl *SkipList) Get(key string) (KeyValue, bool) {
 			}
 			// 指针下移
 			level--
-		} else if key > p.pointers[level].key {  // 当key比当前的节点的下一个节点的值大, 那么指针向右
+		} else if key > p.pointers[level].key { // 当key比当前的节点的下一个节点的值大, 那么指针向右
 			p = p.pointers[level]
-		} else {  // Key 和 下一节点相等, 可以返回结果了
+		} else { // Key 和 下一节点相等, 可以返回结果了
 			return KeyValue{Key: key, Val: p.pointers[level].value}, true
 		}
 	}
@@ -138,9 +138,9 @@ func (sl *SkipList) FindGE(key string) KeyValue {
 			}
 			// 指针下移
 			level--
-		} else if key > p.pointers[level].key {  // 当key比当前的节点的下一个节点的值大, 那么指针向右
+		} else if key > p.pointers[level].key { // 当key比当前的节点的下一个节点的值大, 那么指针向右
 			p = p.pointers[level]
-		} else {  // Key 和 下一节点相等, 可以返回结果了
+		} else { // Key 和 下一节点相等, 可以返回结果了
 			return KeyValue{Key: p.pointers[level].key, Val: p.pointers[level].value}
 		}
 	}
@@ -159,7 +159,7 @@ func (sl *SkipList) randHeight() int {
 	// bias 可以调整. 这个值越大, skiplist越稀疏
 	bias := 2
 	h := 0
-	for rand.Int() % bias == 0 {
+	for rand.Int()%bias == 0 {
 		h += 1
 	}
 	return h
@@ -168,14 +168,14 @@ func (sl *SkipList) randHeight() int {
 // 迭代器
 type Iterator struct {
 	tail *SkipListNode
-	now *SkipListNode
+	now  *SkipListNode
 }
 
 // 还要实现一个迭代器, 用来从小到达迭代所有的KeyValue元素
 func (sl *SkipList) NewIterator() *Iterator {
 	it := &Iterator{
 		tail: sl.tail,
-		now: sl.head,
+		now:  sl.head,
 	}
 	return it
 }

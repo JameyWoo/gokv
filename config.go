@@ -26,7 +26,7 @@ func init() {
 
 //profile variables
 type conf struct {
-	MaxMemSize int `yaml:"MaxMemSize"`  // 注意一定要是大写
+	MaxMemSize    int `yaml:"MaxMemSize"` // 注意一定要是大写
 	DataBlockSize int `yaml:"DataBlockSize"`
 }
 

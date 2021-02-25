@@ -13,7 +13,6 @@ package gokv
 可持久化到磁盘上面
 
 记录每个层级的sstable文件的名称
- */
+*/
 type Manifest struct {
-
 }

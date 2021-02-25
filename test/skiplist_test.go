@@ -24,7 +24,7 @@ func TestSkipList(t *testing.T) {
 		key := strconv.Itoa(rand.Int() % 10)
 		logrus.Infof("put: %s", key)
 		list.Put(gokv.KeyValue{Key: key,
-			Val: gokv.Value{Value: key + "_v", Timestamp: time.Now().UnixNano()/1e6, Op: gokv.PUT}})
+			Val: gokv.Value{Value: key + "_v", Timestamp: time.Now().UnixNano() / 1e6, Op: gokv.PUT}})
 	}
 	for i := 0; i < 10; i++ {
 		kv, ok := list.Get(strconv.Itoa(i))
@@ -48,7 +48,7 @@ func TestIteration(t *testing.T) {
 		key := strconv.Itoa(rand.Int() % 10)
 		logrus.Infof("put: %s", key)
 		list.Put(gokv.KeyValue{Key: key,
-			Val: gokv.Value{Value: key + "_v", Timestamp: time.Now().UnixNano()/1e6, Op: gokv.PUT}})
+			Val: gokv.Value{Value: key + "_v", Timestamp: time.Now().UnixNano() / 1e6, Op: gokv.PUT}})
 	}
 
 	it := list.NewIterator()
