@@ -64,10 +64,10 @@ func (bf BloomFilter) GetHashIndex(s string) []int {
 // 将 [1, 0, 0, 0, 1, 1, 0, 1,    1, 1, 1, 1, 0, 0, 0, 0]
 // 编码成 10110001, 00001111
 func (bf *BloomFilter) encode() []byte {
-	content := make([]byte, 0, len(bf.array) / 8)
+	content := make([]byte, 0, len(bf.array)/8)
 	for i := 0; i < bf.m; i += 8 {
 		var b byte = 0
-		for j := i; j < i + 8; j++ {
+		for j := i; j < i+8; j++ {
 			if bf.array[j] {
 				b |= byte(0x1 << j)
 			}

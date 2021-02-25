@@ -9,9 +9,10 @@
 package gokv
 
 import (
-	"crypto/sha1"
-	"encoding/binary"
+	"github.com/sirupsen/logrus"
 	"os"
+	"strconv"
+	"time"
 )
 
 /**
@@ -50,8 +51,10 @@ import (
 // sstable, 每个sstable结构对应一个sstable文件.
 // sstable文件根据传入的内存memtable将
 type SSTable struct {
-	filename   string
-	writer sstWriter
+	filename    string
+	tmpFilename string
+	dir         string
+	writer      *sstWriter
 
 	memdb *MemDB
 
@@ -65,14 +68,14 @@ type SSTable struct {
 // sstable的写方法. 传递一个 memdb进来, 然后将其内容写入到 sstable文件, 最后将memdb删除
 func (sst *SSTable) write() {
 	// 先初始化文件描述符, 打开文件
-	sst.writer.open()
+	sst.open()
 
 	// 内存key-value的迭代器
 	iter := sst.memdb.NewIterator()
 	metaB := newMetaBlock(2048) // 初始化布隆过滤器, 使用构造函数
 	offset := 0                 // 全局的偏移
 	var content []byte
-	globalCount := 0  // 全局的count, 表示当前的 datablock index 的key的数量
+	globalCount := 0 // 全局的count, 表示当前的 datablock index 的key的数量
 
 	for {
 		kv, ok := iter.Next()
@@ -89,7 +92,7 @@ func (sst *SSTable) write() {
 			globalCount += sst.dataBlock.count
 			sst.indexBlock.add(sst.dataBlock.maxKey, offset, globalCount, len(content))
 			// 将这个dataBlock 的值写入到sstable
-			writer.write(content)
+			sst.writer.write(content)
 
 			// 重置 dataBlock
 			sst.dataBlock = dataBlock{offset: offset}
@@ -103,47 +106,53 @@ func (sst *SSTable) write() {
 	metaBlockOffset := offset
 	for i := 0; i < len(sst.metaBlock); i++ {
 		content = sst.metaBlock[i].encode()
-		write(content)
+		sst.writer.write(content)
 		offset += len(content)
 	}
-	sst.metaindexBlock.set(metaBlockOffset, offset - metaBlockOffset, len(sst.metaBlock))
+	sst.metaindexBlock.set(metaBlockOffset, offset-metaBlockOffset, len(sst.metaBlock))
 
 	// 向文件中写入 metaindexBlock
 	content = sst.metaindexBlock.encode()
 	sst.footer.metaindexBlockIndex = offset
 	offset += len(content)
-	write(content)
+	sst.writer.write(content)
 
 	// 向文件中写入 indexBlock
 	content = sst.indexBlock.encode()
 	sst.footer.indexBlockIndex = offset
 	offset += len(content)
-	write(content)
+	sst.writer.write(content)
 
 	// 向文件中写入 footer
 	content = sst.footer.encode()
-	write(content)
+	sst.writer.write(content)
 
 	// 重命名文件, 并且将文件关闭
-	sst.writer.close()
+	sst.close()
+}
+
+func (sst *SSTable) open() {
+	// 取一个临时的名字, 在 close 的时候改名
+	sst.tmpFilename = strconv.FormatInt(time.Now().UnixNano(), 10) + ".sst.tmp"
+	file, err := os.Create(sst.dir + sst.tmpFilename)
+	sst.writer.file = file
+	if err != nil {
+		logrus.Panic("sstable open failed")
+	}
+}
+
+func (sst *SSTable) close() {
+	// 修改名称
+	sst.writer.file.Close()
+	os.Rename(sst.dir+"/"+sst.tmpFilename, sst.dir+"/"+sst.filename)
 }
 
 // sstable 的写类
 type sstWriter struct {
-	file os.File
-}
-
-// 打开文件
-func (w *sstWriter) open() {
-
-}
-
-// 关闭文件, 并重命名
-func (w *sstWriter) close() {
-
+	file *os.File
 }
 
 // 将内存写入到磁盘
-func (w *sstWriter) write() {
-
+func (w *sstWriter) write(content []byte) {
+	w.file.Write(content)
 }

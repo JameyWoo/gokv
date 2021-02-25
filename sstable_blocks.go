@@ -35,7 +35,7 @@ import (
 type dataBlock struct {
 	content   []byte
 	maxKey    string
-	offset int
+	offset    int
 	count     int
 	indexKeys []uint64 // 内部索引键的位置. 每16个写入一次, 查找时通过这个位置找到对应的key
 }
@@ -43,8 +43,8 @@ type dataBlock struct {
 // 将一个 key-value 结构传进来, 一个一个地写入到当前 dataBlock 的 []byte结构中
 // 为什么不批量写呢? 因为需要控制 一个dataBlock 的大小
 func (db *dataBlock) putKV(kv KeyValue) {
-	if db.count % 16 == 0 {
-		db.indexKeys = append(db.indexKeys, uint64(db.offset + len(db.content)))
+	if db.count%16 == 0 {
+		db.indexKeys = append(db.indexKeys, uint64(db.offset+len(db.content)))
 	}
 	// 将单个key编码
 	// [key_len:8, value_len:8, key, timestamp:8, op:1, value]
@@ -173,7 +173,7 @@ func (ib *indexBlock) encode() []byte {
 type footer struct {
 	metaindexBlockIndex int
 	indexBlockIndex     int
-	magic               int  // 一个特殊字符串的编码
+	magic               int // 一个特殊字符串的编码
 }
 
 // 两个索引都使用 8字节的编码来编码, magic也是使用8字节的编码进行编码
