@@ -51,12 +51,12 @@ import (
 // sstable, 每个sstable结构对应一个sstable文件.
 // sstable文件根据传入的内存memtable将
 type SSTable struct {
-	filename    string
-	tmpFilename string
-	dir         string
-	writer      *sstWriter
+	dir      string
+	filename string
+	memdb    *MemDB
 
-	memdb *MemDB
+	tmpFilename string
+	writer      *sstWriter
 
 	dataBlock      dataBlock      // 内存上同时只会存在一个datablock
 	metaBlock      []*metaBlock   // 可能有多个布隆过滤器
@@ -65,8 +65,31 @@ type SSTable struct {
 	footer         footer         // 一个 footer
 }
 
+// 构造函数
+func NewSSTable(dir, filename string, memdb *MemDB) *SSTable {
+	return &SSTable{dir: dir, filename: filename, memdb: memdb, writer: &sstWriter{}}
+}
+
+// 创建 sstable 文件并打开
+func (sst *SSTable) open() {
+	// 取一个临时的名字, 在 close 的时候改名
+	sst.tmpFilename = strconv.FormatInt(time.Now().UnixNano(), 10) + ".sst.tmp"
+	file, err := os.Create(sst.dir + "/" + sst.tmpFilename)
+	sst.writer.file = file
+	if err != nil {
+		logrus.Panic("sstable open failed")
+	}
+}
+
+// 关闭文件
+func (sst *SSTable) close() {
+	// 修改名称
+	sst.writer.file.Close()
+	os.Rename(sst.dir+"/"+sst.tmpFilename, sst.dir+"/"+sst.filename)
+}
+
 // sstable的写方法. 传递一个 memdb进来, 然后将其内容写入到 sstable文件, 最后将memdb删除
-func (sst *SSTable) write() {
+func (sst *SSTable) Write() {
 	// 先初始化文件描述符, 打开文件
 	sst.open()
 
@@ -85,6 +108,7 @@ func (sst *SSTable) write() {
 		sst.dataBlock.putKV(kv)
 		// 过滤器添加key
 		metaB.add(kv.Key)
+		// ! 考虑剩下的 dataBlock内容
 		if sst.dataBlock.size() > 4096 { // 一个阈值, 要配置
 			content = sst.dataBlock.encode()
 			offset += len(content)
@@ -97,11 +121,30 @@ func (sst *SSTable) write() {
 			// 重置 dataBlock
 			sst.dataBlock = dataBlock{offset: offset}
 		}
+		// ! 考虑剩下的布隆过滤器内容
 		if metaB.size() == 2048 { // 更换下一个布隆过滤器
 			sst.metaBlock = append(sst.metaBlock, metaB)
 			metaB = newMetaBlock(2048)
 		}
 	}
+	// 还可能剩下一些dataBlock
+	if sst.dataBlock.count > 0 {
+		content = sst.dataBlock.encode()
+		offset += len(content)
+		// 同时将 dataBlock 的信息写入到 indexBlock 中
+		globalCount += sst.dataBlock.count
+		sst.indexBlock.add(sst.dataBlock.maxKey, offset, globalCount, len(content))
+		// 将这个dataBlock 的值写入到sstable
+		sst.writer.write(content)
+
+		// 重置 dataBlock
+		sst.dataBlock = dataBlock{offset: offset}
+	}
+	// 还可能剩下一些布隆过滤器内容
+	if metaB.count > 0 {
+		sst.metaBlock = append(sst.metaBlock, metaB)
+	}
+
 	// 向文件中写入 metaBlock
 	metaBlockOffset := offset
 	for i := 0; i < len(sst.metaBlock); i++ {
@@ -129,22 +172,6 @@ func (sst *SSTable) write() {
 
 	// 重命名文件, 并且将文件关闭
 	sst.close()
-}
-
-func (sst *SSTable) open() {
-	// 取一个临时的名字, 在 close 的时候改名
-	sst.tmpFilename = strconv.FormatInt(time.Now().UnixNano(), 10) + ".sst.tmp"
-	file, err := os.Create(sst.dir + sst.tmpFilename)
-	sst.writer.file = file
-	if err != nil {
-		logrus.Panic("sstable open failed")
-	}
-}
-
-func (sst *SSTable) close() {
-	// 修改名称
-	sst.writer.file.Close()
-	os.Rename(sst.dir+"/"+sst.tmpFilename, sst.dir+"/"+sst.filename)
 }
 
 // sstable 的写类

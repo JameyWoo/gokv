@@ -9,15 +9,17 @@
 package test
 
 import (
+	"crypto/sha1"
 	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"testing"
+	"time"
 )
 
 // 对sstable的写入进行测试
 func TestSstableWrite(t *testing.T) {
-	db, err := gokv.Open("db3")
+	db, err := gokv.Open("db4")
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -25,12 +27,14 @@ func TestSstableWrite(t *testing.T) {
 	for i := 0; i < 1100; i++ {
 		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
 	}
-	iter := db.MemIterator()
-	for {
-		kv, ok := iter.Next()
-		if !ok {
-			break
-		}
-		logrus.Info(kv)
-	}
+	sst := gokv.NewSSTable(db.Dir(), "test.sst", db.MemDB())
+	sst.Write()
+	time.Sleep(3 * time.Second)
+}
+
+func TestSha1(t *testing.T) {
+	n := sha1.New()
+	res := n.Sum([]byte("wujiahao"))
+	logrus.Info(res[20:])
+	time.Sleep(3 * time.Second)
 }

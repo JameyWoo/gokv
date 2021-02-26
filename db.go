@@ -26,6 +26,14 @@ type DB struct {
 	walPath string
 }
 
+func (db *DB) Dir() string {
+	return db.dir
+}
+
+func (db *DB) MemDB() *MemDB {
+	return db.memDB
+}
+
 func Open(dirPath string) (*DB, error) {
 	// 生成一个文件夹
 	// 包含 WAL, HFile目录
