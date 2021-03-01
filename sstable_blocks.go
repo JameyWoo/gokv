@@ -42,6 +42,7 @@ type dataBlock struct {
 
 // 将一个 key-value 结构传进来, 一个一个地写入到当前 dataBlock 的 []byte结构中
 // 为什么不批量写呢? 因为需要控制 一个dataBlock 的大小
+// 每添加一个 key-value, 就需要更新一个 maxKey
 func (db *dataBlock) putKV(kv KeyValue) {
 	if db.count%16 == 0 {
 		db.indexKeys = append(db.indexKeys, uint64(db.offset+len(db.content)))
@@ -59,6 +60,9 @@ func (db *dataBlock) putKV(kv KeyValue) {
 		BytesCombine(keyLenByte, valueLenByte, []byte(kv.Key), timestampByte,
 			[]byte{byte(kv.Val.Op)}, []byte(kv.Val.Value))...)
 	db.count++
+	if kv.Key > db.maxKey {
+		db.maxKey = kv.Key
+	}
 }
 
 // 返回当前 datablock 的size, 以 byte为单位
@@ -70,6 +74,7 @@ func (db *dataBlock) size() int {
 func (db *dataBlock) encode() []byte {
 	var allIndexByte []byte
 	indexByte := make([]byte, 8)
+	db.content = append(db.content)
 	for i := 0; i < len(db.indexKeys); i++ {
 		binary.LittleEndian.PutUint64(indexByte, db.indexKeys[i])
 		allIndexByte = append(allIndexByte, indexByte...)

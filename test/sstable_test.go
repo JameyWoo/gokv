@@ -32,6 +32,11 @@ func TestSstableWrite(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
+// 读取测试
+func TestSstableRead(t *testing.T) {
+
+}
+
 func TestSha1(t *testing.T) {
 	n := sha1.New()
 	res := n.Sum([]byte("wujiahao"))

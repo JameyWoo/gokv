@@ -69,7 +69,7 @@ func (bf *BloomFilter) encode() []byte {
 		var b byte = 0
 		for j := i; j < i+8; j++ {
 			if bf.array[j] {
-				b |= byte(0x1 << j)
+				b |= byte(0x1 << (j - i)) // fix bug
 			}
 		}
 		content = append(content, b)
@@ -77,7 +77,13 @@ func (bf *BloomFilter) encode() []byte {
 	return content
 }
 
-// 解码
+// 解码, 从一个 []byte 得到内存上的 bloom filter
 func (bf *BloomFilter) decode(content []byte) {
-
+	for i := 0; i < len(content); i++ {
+		for j := 0; j < 8; j++ {
+			if content[i]&(0x1<<j) != 0 {
+				bf.array[i*8+j] = true
+			}
+		}
+	}
 }

@@ -114,7 +114,8 @@ func (sst *SSTable) Write() {
 			offset += len(content)
 			// 同时将 dataBlock 的信息写入到 indexBlock 中
 			globalCount += sst.dataBlock.count
-			sst.indexBlock.add(sst.dataBlock.maxKey, offset, globalCount, len(content))
+			// fix bug: 这里的offset应该减去大小, offset是一个block的起点
+			sst.indexBlock.add(sst.dataBlock.maxKey, offset-len(content), globalCount, len(content))
 			// 将这个dataBlock 的值写入到sstable
 			sst.writer.write(content)
 
@@ -133,7 +134,7 @@ func (sst *SSTable) Write() {
 		offset += len(content)
 		// 同时将 dataBlock 的信息写入到 indexBlock 中
 		globalCount += sst.dataBlock.count
-		sst.indexBlock.add(sst.dataBlock.maxKey, offset, globalCount, len(content))
+		sst.indexBlock.add(sst.dataBlock.maxKey, offset-len(content), globalCount, len(content))
 		// 将这个dataBlock 的值写入到sstable
 		sst.writer.write(content)
 
