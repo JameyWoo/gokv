@@ -12,9 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"testing"
+	"time"
 )
 
-func TestReadFooter(t *testing.T) {
+func TestReadBlocks(t *testing.T) {
 	sstR := sstReader{}
 	file, err := os.Open("test/read_test.sst")
 	if err != nil {
@@ -26,4 +27,21 @@ func TestReadFooter(t *testing.T) {
 
 func TestTest(t *testing.T) {
 	logrus.Info("hello, gokv")
+}
+
+func TestFindKey(t *testing.T) {
+	sstR := sstReader{}
+	file, err := os.Open("test/read_test.sst")
+	if err != nil {
+		panic(err)
+	}
+	sstR.file = file
+	sstR.key = "1293_key"
+	value, ok := sstR.FindKey()
+	if ok {
+		logrus.Info("value: ", value)
+	} else {
+		logrus.Info("find nothing")
+	}
+	time.Sleep(1 * time.Second)
 }
