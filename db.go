@@ -19,8 +19,9 @@ import (
 )
 
 type DB struct {
-	memDB *MemDB
-	wal   *os.File
+	memDB   *MemDB
+	wal     *os.File
+	options *Options
 
 	dir     string
 	walPath string
@@ -34,7 +35,7 @@ func (db *DB) MemDB() *MemDB {
 	return db.memDB
 }
 
-func Open(dirPath string) (*DB, error) {
+func Open(dirPath string, options *Options) (*DB, error) {
 	// 生成一个文件夹
 	// 包含 WAL, HFile目录
 	if !Exists(dirPath) {
@@ -50,7 +51,10 @@ func Open(dirPath string) (*DB, error) {
 	}
 	wal = wa
 
-	db := &DB{memDB: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}
+	// 在打开数据库的时候读取配置
+	readConfig(options.ConfigPath)
+
+	db := &DB{memDB: NewEngine(), wal: wal, dir: dirPath, walPath: walPath, options: options}
 	err = db.recoveryDB()
 	if err != nil {
 		logrus.Error(err)

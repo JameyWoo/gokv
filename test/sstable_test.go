@@ -19,7 +19,8 @@ import (
 
 // 对sstable的写入进行测试
 func TestSstableWrite(t *testing.T) {
-	db, err := gokv.Open("db4")
+	o := &gokv.Options{ConfigPath: "../gokv.yaml"}
+	db, err := gokv.Open("db4", o)
 	if err != nil {
 		logrus.Error(err)
 	}

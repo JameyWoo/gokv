@@ -21,7 +21,7 @@ func TestReadFooter(t *testing.T) {
 		panic(err)
 	}
 	sstR.file = file
-	sstR.get()
+	sstR.getTest()
 }
 
 func TestTest(t *testing.T) {

@@ -17,9 +17,9 @@ import (
 
 var config *conf
 
-func init() {
+func readConfig(configPath string) {
 	var c conf
-	config = c.getConf()
+	config = c.getConf(configPath)
 	logrus.Info("MaxMemSize: ", config.MaxMemSize)
 	logrus.Info("DataBlockSize: ", config.DataBlockSize)
 }
@@ -30,9 +30,15 @@ type conf struct {
 	DataBlockSize int `yaml:"DataBlockSize"`
 }
 
-func (c *conf) getConf() *conf {
+func (c *conf) getConf(configPath string) *conf {
+	var yamlFile []byte
+	var err error
 	// TODO: 诸葛这个配置文件的位置需要根据test或者发布版本进行修改
-	yamlFile, err := ioutil.ReadFile("../gokv.yaml")
+	if configPath != "" {
+		yamlFile, err = ioutil.ReadFile(configPath)
+	} else {
+		yamlFile, err = ioutil.ReadFile("./gokv.yaml")
+	}
 	if err != nil {
 		fmt.Println(err.Error())
 	}

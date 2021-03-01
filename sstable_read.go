@@ -36,7 +36,7 @@ type sstReader struct {
 	key  string // 要查找的 key
 }
 
-func (r *sstReader) get() {
+func (r *sstReader) getTest() { // 对 sstReader进行测试的函数, debug
 	stat, err := r.file.Stat()
 	if err != nil {
 		panic("get Stat failed")
