@@ -18,7 +18,7 @@ import (
 
 // 文件的打开与写入
 func TestDbOpen(t *testing.T) {
-	db, err := gokv.Open("db0")
+	db, err := gokv.Open("db0", &gokv.Options{ConfigPath: "../gokv.yaml"})
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -30,13 +30,13 @@ func TestDbOpen(t *testing.T) {
 
 // 测试flush的写入以及读取
 func TestFlush(t *testing.T) {
-	db, err := gokv.Open("db2")
+	db, err := gokv.Open("db2", &gokv.Options{ConfigPath: "../gokv.yaml"})
 	if err != nil {
 		logrus.Error(err)
 	}
 	defer db.Close()
 	for i := 0; i < 1100; i++ {
-		db.Put(strconv.Itoa(i) + "_key", strconv.Itoa(i) + "_value")
+		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
 	}
 	val, err := db.Get("100_key")
 	if err != nil {
@@ -55,12 +55,12 @@ func TestFlush(t *testing.T) {
 func TestTimeChuo(t *testing.T) {
 	logrus.Info(time.Now().UnixNano())
 	logrus.Info(time.Now().Unix())
-	logrus.Info("毫秒: ", time.Now().UnixNano() / 1e6)
+	logrus.Info("毫秒: ", time.Now().UnixNano()/1e6)
 }
 
 func BenchmarkDbOpen(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		db, err := gokv.Open("db0")
+		db, err := gokv.Open("db0", &gokv.Options{ConfigPath: "../gokv.yaml"})
 		if err != nil {
 			logrus.Error(err)
 		}

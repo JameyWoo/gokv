@@ -5,3 +5,7 @@
 
 # 内存memStore阈值配置, 以byte为单位
 MaxMemSize: 8192
+
+
+# 配置sstable中默认的datablock大小, 单位为byte, 默认4KB
+DataBlockSize: 4096

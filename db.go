@@ -19,14 +19,23 @@ import (
 )
 
 type DB struct {
-	memDB *MemDB
-	wal   *os.File
+	memDB   *MemDB
+	wal     *os.File
+	options *Options
 
-	dir string
+	dir     string
 	walPath string
 }
 
-func Open(dirPath string) (*DB, error) {
+func (db *DB) Dir() string {
+	return db.dir
+}
+
+func (db *DB) MemDB() *MemDB {
+	return db.memDB
+}
+
+func Open(dirPath string, options *Options) (*DB, error) {
 	// 生成一个文件夹
 	// 包含 WAL, HFile目录
 	if !Exists(dirPath) {
@@ -42,7 +51,10 @@ func Open(dirPath string) (*DB, error) {
 	}
 	wal = wa
 
-	db := &DB{memDB: NewEngine(), wal: wal, dir: dirPath, walPath: walPath}
+	// 在打开数据库的时候读取配置
+	readConfig(options.ConfigPath)
+
+	db := &DB{memDB: NewEngine(), wal: wal, dir: dirPath, walPath: walPath, options: options}
 	err = db.recoveryDB()
 	if err != nil {
 		logrus.Error(err)
@@ -106,6 +118,7 @@ func (db *DB) Get(key string) (Value, error) {
 }
 
 func (db *DB) Put(key, value string) error {
+	// 时间戳, 以ms为单位. 但是如果在同一ms内对同一个值的不同操作的话, 应该怎么办?
 	return db.put(KeyValue{Key: key,
 		Val: Value{Value: value, Timestamp: time.Now().UnixNano() / 1e6, Op: PUT}})
 }
@@ -167,7 +180,7 @@ func (db *DB) flush() error {
 		// create
 		os.Mkdir(flushPath, os.ModePerm)
 	}
-	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
+	files, _ := ioutil.ReadDir(flushPath) // 编号从0开始
 	fileId := len(files)
 
 	fileBytes := make([]byte, 0)
@@ -211,7 +224,7 @@ func (db *DB) diskGet(key string) (Value, error) {
 		// create
 		os.Mkdir(flushPath, os.ModePerm)
 	}
-	files, _ := ioutil.ReadDir(flushPath)  // 编号从0开始
+	files, _ := ioutil.ReadDir(flushPath) // 编号从0开始
 	for ii := 0; ii < len(files); ii++ {
 		bytes, err := ioutil.ReadFile(flushPath + files[ii].Name())
 		if err != nil {
@@ -222,11 +235,15 @@ func (db *DB) diskGet(key string) (Value, error) {
 		for len(bytes) != 0 {
 			kv := KeyValue{}
 			kv, bytes = KvDecode(bytes)
-			//logrus.Infof("key: %s, val: %s", kv.Key, kv.Val.Value)
+			//logrus.Infof("Key: %s, val: %s", kv.LruKey, kv.Val.Value)
 			if key == kv.Key {
 				return kv.Val, nil
 			}
 		}
 	}
 	return Value{}, GetEmptyError
+}
+
+func (db *DB) MemIterator() *Iterator {
+	return db.memDB.NewIterator()
 }

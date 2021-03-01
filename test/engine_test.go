@@ -10,7 +10,7 @@ import (
 
 /*
 测试引擎基本接口: get, put, delete, scan
- */
+*/
 
 func TestEnginePut(t *testing.T) {
 	e := gokv.NewEngine()
@@ -39,11 +39,11 @@ func TestEngineGet(t *testing.T) {
 
 //func TestEngineDelete(t *testing.T) {
 //	e := gokv.NewEngine()
-//	_ = e.Put(gokv.KeyValue{Key: "hello", Value: "world"})
-//	_ = e.Put(gokv.KeyValue{Key: "fuck", Value: "you"})
-//	_ = e.Put(gokv.KeyValue{Key: "do", Value: "it"})
-//	_ = e.Put(gokv.KeyValue{Key: "left", Value: "right"})
-//	_ = e.Put(gokv.KeyValue{Key: "shutdown", Value: "away"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "hello", Value: "world"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "fuck", Value: "you"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "do", Value: "it"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "left", Value: "right"})
+//	_ = e.Put(gokv.KeyValue{LruKey: "shutdown", Value: "away"})
 //
 //	sr, err := e.Scan("", "z")
 //	if err != nil {
@@ -66,7 +66,7 @@ func TestEngineGet(t *testing.T) {
 
 /*
 测试memstore的存储容量与阈值
- */
+*/
 func TestMaxMemSize(t *testing.T) {
 	m := make(map[string]string)
 	m["hello"] = "world"
@@ -97,9 +97,9 @@ func TestKeyValue(t *testing.T) {
 	kv := gokv.KeyValue{
 		Key: "hello",
 		Val: gokv.Value{
-			Value: "world",
+			Value:     "world",
 			Timestamp: time.Now().UnixNano() / 1e6,
-			Op: gokv.DEL,
+			Op:        gokv.DEL,
 		},
 	}
 	logrus.Info(kv)
