@@ -56,6 +56,130 @@ func (r *sstReader) getTest() { // 对 sstReader进行测试的函数, debug
 	time.Sleep(1 * time.Second)
 }
 
+/*
+通过已知的 key, 找到其对应的 Value值
+步骤:
+1. 读取 footer, 然后获得 metaindex block 和 index block 的索引位置
+2. 读取 index block, 然后得到key对应与哪个data block
+3. 根据累加的count值得到该key属于哪个bloom filter, 然后使用该 bloom filter进行过滤
+
+PS. 需要加入缓存结构
+*/
+func (r *sstReader) FindKey() (*Value, bool) {
+	stat, err := r.file.Stat()
+	if err != nil {
+		panic("get Stat failed")
+	}
+	size := stat.Size()
+	footerSize := 24
+	pFooter := r.getFooter(int(size)-footerSize, footerSize)
+	pIndexBlock := r.getIndexBlock(pFooter.indexBlockIndex, int(size)-footerSize-pFooter.indexBlockIndex)
+	if r.key > pIndexBlock.entries[len(pIndexBlock.entries)-1].key {
+		return nil, false
+	}
+	// 搜索 pIndexBlock, 找到key对应的datablock的位置. key 是从小到大的
+	cntL, cntR := 0, 0
+	blockOffset := -1
+	blockLen := -1
+	for i := 0; i < len(pIndexBlock.entries); i++ {
+		cntR += pIndexBlock.entries[i].count     // 排位的上限
+		if r.key <= pIndexBlock.entries[i].key { // index 里保存的应该是最大值
+			blockOffset = pIndexBlock.entries[i].offset
+			blockLen = pIndexBlock.entries[i].size
+			break // fix bug: 之前忘记了 break, 导致总是查找到最后面的那个block!
+		}
+		cntL += pIndexBlock.entries[i].count // 排位的下限
+	}
+	// 如果 offset == -1, 说明 entries 中没有条目(当然, 这种情况基本不会出现)
+	if blockOffset == -1 {
+		return nil, false
+	}
+	// 根据 (cntL, cntR] 找到对应的 metaBlock
+	pMetaindexBlock := r.getMetaindexBlock(pFooter.metaindexBlockIndex,
+		pFooter.indexBlockIndex-pFooter.metaindexBlockIndex)
+	metaL := (cntL + 1) / 2048
+	metaR := cntR / 2048
+	if metaL == metaR { // 范围是一个 metaBlock
+		pMetaBlock := r.getMetaBlock(pMetaindexBlock.offset+metaL*pMetaindexBlock.size, pMetaindexBlock.size)
+		if !pMetaBlock.bf.MayContain(r.key) {
+			return nil, false
+		}
+	} else { // 范围是两个 metaBlock
+		pMetaBlockL := r.getMetaBlock(pMetaindexBlock.offset+metaL*pMetaindexBlock.size, pMetaindexBlock.size)
+		pMetaBlockR := r.getMetaBlock(pMetaindexBlock.offset+metaR*pMetaindexBlock.size, pMetaindexBlock.size)
+		if !pMetaBlockL.bf.MayContain(r.key) && !pMetaBlockR.bf.MayContain(r.key) {
+			return nil, false
+		}
+	}
+	// 从以 blockOffset 为偏移的 datablock中查找 key
+	pDataBlock := r.getDataBlock(blockOffset, blockLen)
+	return findKeyFromDataBlock(r.key, pDataBlock)
+}
+
+/*
+从一个 dataBlock 中找到 key
+步骤:
+1. 由于datablock已经解析成了内存数据结构, 因此第一步查找索引, 找到其对应的范围
+2. 找到范围后, 顺序遍历这个范围区间, 如果没有找到, 那么这个key不存在在datablock中
+*/
+
+func findKeyFromDataBlock(key string, pDataBlock *dataBlock) (*Value, bool) {
+	startKey, _ := getKeyByOffset(0, pDataBlock)
+	if startKey > key {
+		return nil, false
+	}
+	startOffset := int(pDataBlock.indexKeys[len(pDataBlock.indexKeys)-1]) - pDataBlock.offset
+	for i := 0; i < len(pDataBlock.indexKeys); i++ {
+		// 相对偏移
+		indexKeyOffset := int(pDataBlock.indexKeys[i]) - pDataBlock.offset
+		indexKey, _ := getKeyByOffset(indexKeyOffset, pDataBlock)
+		if indexKey > key { // 上一个 index区间
+			startOffset = int(pDataBlock.indexKeys[i-1]) - pDataBlock.offset
+			break
+		}
+	}
+	// 从 startOffset开始依次遍历 datablock 上的 key-value (根据key判断)
+	iterOffset := startOffset
+	for i := 0; i < 16; i++ { // 最多查找16个key
+		// 需要判断offset是否超过datablock的content的len, 因为可能是最后一个
+		if iterOffset >= len(pDataBlock.content) {
+			return nil, false
+		}
+		iterKey, step := getKeyByOffset(iterOffset, pDataBlock)
+		if iterKey > key { // 遍历到了一个更大的key, 说明待查找的key不在这个block里面
+			return nil, false
+		}
+		if iterKey == key {
+			return getValueByOffset(iterOffset, pDataBlock), true
+		}
+		// 下一个键的偏移
+		iterOffset += step
+	}
+	return nil, false
+}
+
+// 在一个 dataBlock中, 通过一个 offset得到一个 key值(string)
+// 返回值有两个, 一个是 key值, 第二个是当前key-value 的长度(字节数)
+func getKeyByOffset(offset int, pDataBlock *dataBlock) (string, int) {
+	keyLenOffset := offset
+	keyLen := int(binary.LittleEndian.Uint64(pDataBlock.content[keyLenOffset : keyLenOffset+8]))
+	valueLen := int(binary.LittleEndian.Uint64(pDataBlock.content[keyLenOffset+8 : keyLenOffset+16]))
+	return string(pDataBlock.content[keyLenOffset+16 : keyLenOffset+16+keyLen]), 25 + keyLen + valueLen
+}
+
+// 在一个 dataBlock中, 通过一个 offset得到一个 value值(Value)
+func getValueByOffset(offset int, pDataBlock *dataBlock) *Value {
+	keyLenOffset := offset
+	keyLen := int(binary.LittleEndian.Uint64(pDataBlock.content[keyLenOffset : keyLenOffset+8]))
+	valueLen := int(binary.LittleEndian.Uint64(pDataBlock.content[keyLenOffset+8 : keyLenOffset+16]))
+	value := Value{}
+	value.Timestamp = int64(binary.LittleEndian.Uint64(
+		pDataBlock.content[keyLenOffset+keyLen+16 : keyLenOffset+keyLen+24]))
+	value.Op = Op(pDataBlock.content[keyLenOffset+keyLen+24])
+	value.Value = string(pDataBlock.content[keyLenOffset+keyLen+25 : keyLenOffset+keyLen+25+valueLen])
+	return &value
+}
+
 // 根据文件偏移获得一个 footer指针
 // 首先 footer 的size是固定的, 所以根据文件的总size找到 footer 的偏移, 然后分别找到对应的offset
 func (r *sstReader) getFooter(offset, len int) *footer {
@@ -79,7 +203,7 @@ func (r *sstReader) getMetaindexBlock(offset, len int) *metaindexBlock {
 
 // 根据文件偏移获得一个 indexBlock指针
 // 一个 indexBlock 的 entry 的长度是 不固定的, 它由
-// keyLenByte, offsetByte, countByte, sizeByte, []byte(item.key))... 组成, 共四个字段
+// keyLenByte, offsetByte, countByte, sizeByte, []byte(sstableIter.key))... 组成, 共四个字段
 func (r *sstReader) getIndexBlock(offset, len int) *indexBlock {
 	aIndexBlock := indexBlock{}
 	content := ReadOffsetLen(r.file, offset, len)
