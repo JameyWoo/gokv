@@ -164,3 +164,13 @@ func (e *MemDB) NewIterator() *Iterator {
 //	}
 //	return kvs, nil
 //}
+
+// 获得 memdb 的最小 key
+func (e *MemDB) getMinKey() string {
+	return e.memStore.getMinKey()
+}
+
+// 获得 memdb 的最大 key
+func (e *MemDB) getMaxKey() string {
+	return e.memStore.getMaxKey()
+}

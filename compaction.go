@@ -29,8 +29,6 @@ package gokv
 
 import (
 	"os"
-	"strconv"
-	"time"
 )
 
 // 压缩, 将几个 sstable 压缩成一个
@@ -53,7 +51,7 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 		}
 	}
 	// 新的 nsm
-	nsm := sstableMeta{dir: sstMetas[0].dir, filename: strconv.FormatInt(time.Now().UnixNano(), 10) + ".sst"}
+	nsm := sstableMeta{dir: sstMetas[0].dir, filename: GetTimeString() + ".sst"}
 	// 创建一个sstable文件
 	sst := NewSSTable(nsm.dir, nsm.filename, nil)
 	sst.open()
@@ -91,10 +89,10 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 		lastKey = hi.kv
 		//logrus.Info(kv.Key, kv.Val.Op)
 		// 处理 kv, 将 kv 添加到新的 sstable中. 内容类似 sstable.Write()
-		sstAddKeyValue(sst, metaB, content, offset, globalCount, kv)
+		sstAddKeyValue(sst, metaB, content, &offset, &globalCount, kv)
 	}
 	// 剩下一个lastKey需要添加
-	sstAddKeyValue(sst, metaB, content, offset, globalCount, lastKey)
+	sstAddKeyValue(sst, metaB, content, &offset, &globalCount, lastKey)
 	// 还可能剩下一些dataBlock
 	if sst.dataBlock.count > 0 {
 		content = sst.dataBlock.encode()
@@ -144,23 +142,23 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 	return &nsm
 }
 
-func sstAddKeyValue(sst *SSTable, metaB *metaBlock, content []byte, offset, globalCount int, kv KeyValue) {
+func sstAddKeyValue(sst *SSTable, metaB *metaBlock, content []byte, offset, globalCount *int, kv KeyValue) {
 	sst.dataBlock.putKV(kv)
 	// 过滤器添加key
 	metaB.add(kv.Key)
 	// ! 考虑剩下的 dataBlock内容
 	if sst.dataBlock.size() > 4096 { // 一个阈值, 要配置
 		content = sst.dataBlock.encode()
-		offset += len(content)
+		*offset += len(content)
 		// 同时将 dataBlock 的信息写入到 indexBlock 中
-		globalCount += sst.dataBlock.count
+		*globalCount += sst.dataBlock.count
 		// fix bug: 这里的offset应该减去大小, offset是一个block的起点
-		sst.indexBlock.add(sst.dataBlock.maxKey, offset-len(content), globalCount, len(content))
+		sst.indexBlock.add(sst.dataBlock.maxKey, *offset-len(content), *globalCount, len(content))
 		// 将这个dataBlock 的值写入到sstable
 		sst.writer.write(content)
 
 		// 重置 dataBlock
-		sst.dataBlock = dataBlock{offset: offset}
+		sst.dataBlock = dataBlock{offset: *offset}
 	}
 	// ! 考虑剩下的布隆过滤器内容
 	if metaB.size() == 2048 { // 更换下一个布隆过滤器

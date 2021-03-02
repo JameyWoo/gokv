@@ -18,7 +18,7 @@ import (
 
 // 文件的打开与写入
 func TestDbOpen(t *testing.T) {
-	db, err := gokv.Open("db0", &gokv.Options{ConfigPath: "../gokv.yaml"})
+	db, err := gokv.Open("db5", &gokv.Options{ConfigPath: "../gokv.yaml"})
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -68,4 +68,18 @@ func BenchmarkDbOpen(b *testing.B) {
 		_, _ = db.Get("hello")
 		db.Close()
 	}
+}
+
+// 测试 flush 使用 sstable
+func TestFlushSSTable(t *testing.T) {
+	o := &gokv.Options{ConfigPath: "../gokv.yaml"}
+	db, err := gokv.Open("db5", o)
+	if err != nil {
+		logrus.Error(err)
+	}
+	defer db.Close()
+	for i := 0; i < 2000; i++ {
+		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
+	}
+	time.Sleep(3 * time.Second)
 }

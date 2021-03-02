@@ -25,6 +25,7 @@ package gokv
 type Manifest struct {
 	dir    string          // 保存 sstable文件的目录
 	levels [][]sstableMeta // 二维, 有多层, 每一层都有多个 sstableMeta
+	level  int             // 当前的最大层数
 }
 
 // 一个 sstable 的元数据
@@ -32,4 +33,5 @@ type sstableMeta struct {
 	dir            string // sstable文件的目录
 	filename       string // sstable的文件名
 	maxKey, minKey string // 最大最小值
+	filesize       int    // 文件大小(字节), 每次生成了新的文件之后写入这个值保存
 }

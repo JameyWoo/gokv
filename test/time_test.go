@@ -9,15 +9,15 @@
 package test
 
 import (
+	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"testing"
-	"time"
 )
 
 func TestTimeString(t *testing.T) {
-	logrus.Info(strconv.FormatInt(time.Now().UnixNano(), 10))
+	logrus.Info(gokv.GetTimeString())
 
 	logrus.Info(strconv.FormatInt(10, 2))
 
