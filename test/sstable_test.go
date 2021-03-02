@@ -25,7 +25,7 @@ func TestSstableWrite(t *testing.T) {
 		logrus.Error(err)
 	}
 	defer db.Close()
-	for i := 0; i < 1100; i++ {
+	for i := 1100; i < 2100; i++ {
 		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
 	}
 	sst := gokv.NewSSTable(db.Dir(), "test.sst", db.MemDB())

@@ -203,7 +203,7 @@ func (r *sstReader) getMetaindexBlock(offset, len int) *metaindexBlock {
 
 // 根据文件偏移获得一个 indexBlock指针
 // 一个 indexBlock 的 entry 的长度是 不固定的, 它由
-// keyLenByte, offsetByte, countByte, sizeByte, []byte(item.key))... 组成, 共四个字段
+// keyLenByte, offsetByte, countByte, sizeByte, []byte(sstableIter.key))... 组成, 共四个字段
 func (r *sstReader) getIndexBlock(offset, len int) *indexBlock {
 	aIndexBlock := indexBlock{}
 	content := ReadOffsetLen(r.file, offset, len)

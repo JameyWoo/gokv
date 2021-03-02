@@ -6,10 +6,9 @@
  * @Copyright (c) 2021, JameyWoo. All rights reserved.
  */
 
-package test
+package gokv
 
 import (
-	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
@@ -19,12 +18,12 @@ import (
 
 // 测试跳跃表的插入
 func TestSkipList(t *testing.T) {
-	list := gokv.NewSkipList()
+	list := NewSkipList()
 	for i := 0; i < 10; i++ {
 		key := strconv.Itoa(rand.Int() % 10)
 		logrus.Infof("put: %s", key)
-		list.Put(gokv.KeyValue{Key: key,
-			Val: gokv.Value{Value: key + "_v", Timestamp: time.Now().UnixNano() / 1e6, Op: gokv.PUT}})
+		list.Put(KeyValue{Key: key,
+			Val: Value{Value: key + "_v", Timestamp: time.Now().UnixNano() / 1e6, Op: PUT}})
 	}
 	for i := 0; i < 10; i++ {
 		kv, ok := list.Get(strconv.Itoa(i))
@@ -43,12 +42,12 @@ func TestSkipList(t *testing.T) {
 // 测试跳跃表的迭代器, 使其可以从小到达得到元素
 // 迭代器是为了在将内存的内容写入到磁盘而建立的
 func TestIteration(t *testing.T) {
-	list := gokv.NewSkipList()
+	list := NewSkipList()
 	for i := 0; i < 10; i++ {
 		key := strconv.Itoa(rand.Int() % 10)
 		logrus.Infof("put: %s", key)
-		list.Put(gokv.KeyValue{Key: key,
-			Val: gokv.Value{Value: key + "_v", Timestamp: time.Now().UnixNano() / 1e6, Op: gokv.PUT}})
+		list.Put(KeyValue{Key: key,
+			Val: Value{Value: key + "_v", Timestamp: time.Now().UnixNano() / 1e6, Op: PUT}})
 	}
 
 	it := list.NewIterator()
