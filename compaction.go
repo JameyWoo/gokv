@@ -29,6 +29,7 @@ package gokv
 
 import (
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -52,7 +53,7 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 		}
 	}
 	// 新的 nsm
-	nsm := sstableMeta{dir: sstMetas[0].dir, filename: time.Now().String() + ".sst"}
+	nsm := sstableMeta{dir: sstMetas[0].dir, filename: strconv.FormatInt(time.Now().UnixNano(), 10) + ".sst"}
 	// 创建一个sstable文件
 	sst := NewSSTable(nsm.dir, nsm.filename, nil)
 	sst.open()
@@ -61,41 +62,39 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 	offset := 0                 // 全局的偏移
 	var content []byte
 	globalCount := 0 // 全局的count, 表示当前的 datablock index 的key的数量
+	isFirstKey := true
+	var lastKey KeyValue
 
 	for {
 		hi, more := mh.getMin() // 一个元素都没有了
-		mh.pop()
 		if !more {
 			break
 		}
-		kv, have := iters[hi.index].Next()
+		mh.pop()
+		kvNext, have := iters[hi.index].Next()
 		if have {
-			mh.push(kv, hi.index)
+			mh.push(kvNext, hi.index)
 		}
+		// TODO: 需要增加一个缓冲, 从而当key相同的时候能够特殊处理(只保留一个key)
+		if isFirstKey {
+			isFirstKey = false
+			lastKey = hi.kv
+			// 第一个key的时候不添加, 设置为 lastKey然后跳过
+			continue
+		}
+		if hi.kv.Key == lastKey.Key {
+			// 如果当前 key 跟 上一个 key相同, 那么 赋值然后跳过
+			lastKey = hi.kv
+			continue
+		}
+		kv := lastKey
+		lastKey = hi.kv
+		//logrus.Info(kv.Key, kv.Val.Op)
 		// 处理 kv, 将 kv 添加到新的 sstable中. 内容类似 sstable.Write()
-		sst.dataBlock.putKV(kv)
-		// 过滤器添加key
-		metaB.add(kv.Key)
-		// ! 考虑剩下的 dataBlock内容
-		if sst.dataBlock.size() > 4096 { // 一个阈值, 要配置
-			content = sst.dataBlock.encode()
-			offset += len(content)
-			// 同时将 dataBlock 的信息写入到 indexBlock 中
-			globalCount += sst.dataBlock.count
-			// fix bug: 这里的offset应该减去大小, offset是一个block的起点
-			sst.indexBlock.add(sst.dataBlock.maxKey, offset-len(content), globalCount, len(content))
-			// 将这个dataBlock 的值写入到sstable
-			sst.writer.write(content)
-
-			// 重置 dataBlock
-			sst.dataBlock = dataBlock{offset: offset}
-		}
-		// ! 考虑剩下的布隆过滤器内容
-		if metaB.size() == 2048 { // 更换下一个布隆过滤器
-			sst.metaBlock = append(sst.metaBlock, metaB)
-			metaB = newMetaBlock(2048)
-		}
+		sstAddKeyValue(sst, metaB, content, offset, globalCount, kv)
 	}
+	// 剩下一个lastKey需要添加
+	sstAddKeyValue(sst, metaB, content, offset, globalCount, lastKey)
 	// 还可能剩下一些dataBlock
 	if sst.dataBlock.count > 0 {
 		content = sst.dataBlock.encode()
@@ -143,4 +142,29 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 	sst.close()
 
 	return &nsm
+}
+
+func sstAddKeyValue(sst *SSTable, metaB *metaBlock, content []byte, offset, globalCount int, kv KeyValue) {
+	sst.dataBlock.putKV(kv)
+	// 过滤器添加key
+	metaB.add(kv.Key)
+	// ! 考虑剩下的 dataBlock内容
+	if sst.dataBlock.size() > 4096 { // 一个阈值, 要配置
+		content = sst.dataBlock.encode()
+		offset += len(content)
+		// 同时将 dataBlock 的信息写入到 indexBlock 中
+		globalCount += sst.dataBlock.count
+		// fix bug: 这里的offset应该减去大小, offset是一个block的起点
+		sst.indexBlock.add(sst.dataBlock.maxKey, offset-len(content), globalCount, len(content))
+		// 将这个dataBlock 的值写入到sstable
+		sst.writer.write(content)
+
+		// 重置 dataBlock
+		sst.dataBlock = dataBlock{offset: offset}
+	}
+	// ! 考虑剩下的布隆过滤器内容
+	if metaB.size() == 2048 { // 更换下一个布隆过滤器
+		sst.metaBlock = append(sst.metaBlock, metaB)
+		metaB = newMetaBlock(2048)
+	}
 }

@@ -18,7 +18,10 @@ import (
 对 compaction时的 sstable文件的迭代器进行测试, 该迭代器会一步一步地得到sstable的每一个key-value
 */
 func TestCompactionIter(t *testing.T) {
-	file, err := os.Open("test/compaction_test/iter_test.sst")
+	//file, err := os.Open("test/compaction_test/iter_test.sst")
+	//file, err := os.Open("test/compaction_test/test1.sst")
+	//file, err := os.Open("test/compaction_test/test2.sst")
+	file, err := os.Open("test/compaction_test/1614680072718482600.sst")
 	if err != nil {
 		panic(err)
 	}
@@ -28,11 +31,6 @@ func TestCompactionIter(t *testing.T) {
 		if !more {
 			break
 		}
-		// debug时用, 现在不需要了
-		// 将每个 key 都打印出来
-		//if kv.Key == "973_key" {
-		//	time.Sleep(1 * time.Second)
-		//}
 		logrus.Info(kv.Key)
 	}
 }
