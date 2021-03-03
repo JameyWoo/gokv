@@ -50,8 +50,13 @@ func ReadOffsetLen(f *os.File, offset, len int) []byte {
 	count := 0
 	for count < len {
 		size, err := f.ReadAt(buf, int64(offset+count))
-		if err != nil && err != io.EOF { // 读取到文件结尾时会出现 EOF错误
-			panic("ReadOffsetLen failed!")
+		// ! bug: 如果不该督导 io.EOF 却读到了, 则会陷入死循环.
+		if err != nil { // 读取到文件结尾时会出现 EOF错误
+			if err == io.EOF && size+count >= len {
+
+			} else {
+				panic("ReadOffsetLen failed!")
+			}
 		}
 		count += size
 		res = append(res, buf...)

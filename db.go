@@ -116,11 +116,11 @@ func (db *DB) Close() {
 	wal.Close()
 }
 
-func (db *DB) Get(key string) (Value, error) {
+func (db *DB) Get(key string) (Value, bool) {
 	value, err := db.memDB.Get(key)
-	// 如果没有得到value
+	// 如果得到value
 	if err == nil {
-		return value, err
+		return value, true
 	}
 	// 从磁盘上获取value
 	return db.diskGet(key)
@@ -209,32 +209,43 @@ func (db *DB) flush() error {
 	return nil
 }
 
-func (db *DB) diskGet(key string) (Value, error) {
-	// 从磁盘上获取目录及文件, 然后一个一个读取
-	flushPath := db.dir + "/flush_files/"
-	_, err := os.Stat(flushPath)
-	if os.IsNotExist(err) {
-		// create
-		os.Mkdir(flushPath, os.ModePerm)
+func (db *DB) diskGet(key string) (Value, bool) {
+	// 根据 manifest的信息, 先从第0层依次读取sstable
+	// 如果没有, 那么从其他层找
+	if db.manifest.level == 0 { // 一个 sstable文件都没有
+		return Value{}, false
 	}
-	files, _ := ioutil.ReadDir(flushPath) // 编号从0开始
-	for ii := 0; ii < len(files); ii++ {
-		bytes, err := ioutil.ReadFile(flushPath + files[ii].Name())
-		if err != nil {
-			logrus.Error(err)
+	v, find := db.findOnOneLevel(0, key)
+	if find {
+		return v, find
+	}
+	// 对剩下的每一层都检察一下
+	for i := 1; i < db.manifest.level; i++ {
+		v, find = db.findOnOneLevel(i, key)
+		if find {
+			return v, find
 		}
-		//logrus.Info("file: ", files[ii].Name())
-		// 解码
-		for len(bytes) != 0 {
-			kv := KeyValue{}
-			kv, bytes = KvDecode(bytes)
-			//logrus.Infof("Key: %s, val: %s", kv.LruKey, kv.Val.Value)
-			if key == kv.Key {
-				return kv.Val, nil
+	}
+	return Value{}, false
+}
+
+func (db *DB) findOnOneLevel(level int, key string) (Value, bool) {
+	for i := 0; i < len(db.manifest.levels[level]); i++ {
+		if key <= db.manifest.levels[level][i].maxKey && key >= db.manifest.levels[level][i].minKey {
+			ssr := sstReader{}
+			file, err := os.Open(db.dir + "/" + db.manifest.levels[level][i].filename)
+			if err != nil {
+				panic(err)
+			}
+			ssr.file = file
+			ssr.key = key
+			pv, find := ssr.FindKey()
+			if find {
+				return *pv, true
 			}
 		}
 	}
-	return Value{}, GetEmptyError
+	return Value{}, false
 }
 
 func (db *DB) MemIterator() *Iterator {
@@ -367,7 +378,7 @@ func majorCompaction(db *DB, cur int) bool {
 	// 将新的 sstableMeta添加进去
 	db.manifest.levels[nxt] = append(db.manifest.levels[nxt], *sstm)
 	threshold := int(math.Pow10(nxt-1)) * 1024 * 1024
-	logrus.Info(db.manifest.filesizes[nxt])
+	//logrus.Info(db.manifest.filesizes[nxt])
 	if db.manifest.filesizes[nxt] > threshold {
 		return true
 	}

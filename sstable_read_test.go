@@ -32,12 +32,12 @@ func TestTest(t *testing.T) {
 
 func TestFindKey(t *testing.T) {
 	sstR := sstReader{}
-	file, err := os.Open("test/compaction_test/read_test.sst")
+	file, err := os.Open("test/db6/1614749271926443000.sst")
 	if err != nil {
 		panic(err)
 	}
 	sstR.file = file
-	sstR.key = "990_key"
+	sstR.key = IntToStringWithZero8(12345)
 	value, ok := sstR.FindKey()
 	if ok {
 		logrus.Info("value: ", value)

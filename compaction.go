@@ -118,7 +118,8 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 		sst.writer.write(content)
 		offset += len(content)
 	}
-	sst.metaindexBlock.set(metaBlockOffset, offset-metaBlockOffset, len(sst.metaBlock))
+	// ! fix bug: 之前这里数据设置有问题
+	sst.metaindexBlock.set(metaBlockOffset, len(sst.metaBlock), 2048/8)
 
 	// 向文件中写入 metaindexBlock
 	content = sst.metaindexBlock.encode()
@@ -170,6 +171,7 @@ func sstAddKeyValue(sst *SSTable, metaB *metaBlock, content []byte, offset, glob
 		sst.dataBlock = dataBlock{offset: *offset}
 	}
 	// ! 考虑剩下的布隆过滤器内容
+	// debug: 一次测试发现根本执行不到这里. 排查出是 indexBlock 的count问题. 它记录的是累加, 而我把它当成一个块的数量.
 	if metaB.size() == 2048 { // 更换下一个布隆过滤器
 		sst.metaBlock = append(sst.metaBlock, metaB)
 		metaB = newMetaBlock(2048)

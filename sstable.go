@@ -151,7 +151,7 @@ func (sst *SSTable) Write() int {
 		sst.writer.write(content)
 		offset += len(content)
 	}
-	sst.metaindexBlock.set(metaBlockOffset, offset-metaBlockOffset, len(sst.metaBlock))
+	sst.metaindexBlock.set(metaBlockOffset, len(sst.metaBlock), 2048/8)
 
 	// 向文件中写入 metaindexBlock
 	content = sst.metaindexBlock.encode()

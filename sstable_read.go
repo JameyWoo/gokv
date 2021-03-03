@@ -82,13 +82,14 @@ func (r *sstReader) FindKey() (*Value, bool) {
 	blockOffset := -1
 	blockLen := -1
 	for i := 0; i < len(pIndexBlock.entries); i++ {
-		cntR += pIndexBlock.entries[i].count     // 排位的上限
+		// ! fix bug: 之前这里是 += ; 导致计数过多! 于是debug很久. 发现之后想起之前有一个bug也是由这个引起的, 哎!
+		cntR = pIndexBlock.entries[i].count      // 排位的上限
 		if r.key <= pIndexBlock.entries[i].key { // index 里保存的应该是最大值
 			blockOffset = pIndexBlock.entries[i].offset
 			blockLen = pIndexBlock.entries[i].size
 			break // fix bug: 之前忘记了 break, 导致总是查找到最后面的那个block!
 		}
-		cntL += pIndexBlock.entries[i].count // 排位的下限
+		cntL = pIndexBlock.entries[i].count // 排位的下限
 	}
 	// 如果 offset == -1, 说明 entries 中没有条目(当然, 这种情况基本不会出现)
 	if blockOffset == -1 {
@@ -100,6 +101,7 @@ func (r *sstReader) FindKey() (*Value, bool) {
 	metaL := (cntL + 1) / 2048
 	metaR := cntR / 2048
 	if metaL == metaR { // 范围是一个 metaBlock
+		// ! debug: 这里获取 bloom filter的时候, 出现了 len=512 的情况, 导致 content超标. pMetaindexBlock.size的设置有问题
 		pMetaBlock := r.getMetaBlock(pMetaindexBlock.offset+metaL*pMetaindexBlock.size, pMetaindexBlock.size)
 		if !pMetaBlock.bf.MayContain(r.key) {
 			return nil, false
