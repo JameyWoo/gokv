@@ -15,6 +15,7 @@ const (
 type Op byte
 
 const (
-	PUT Op = 0
-	DEL
+	PUT Op = iota // fix bug: 之前没写 iota, 没有iota不是枚举!
+	DEL           // 1
+	GET           // 2 在 server 中使用, 被redis请求
 )

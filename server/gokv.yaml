@@ -1,0 +1,12 @@
+# 这是 gokv 项目的配置文件
+# 配置项冒号后面一定要有空格
+# 每添加一个新的配置都需要在 config.go 中添加到 struct conf 结构中
+
+
+# 内存memStore阈值配置, 以byte为单位
+# MaxMemSize: 8192
+MaxMemSize: 81920
+
+
+# 配置sstable中默认的datablock大小, 单位为byte, 默认4KB
+DataBlockSize: 4096
