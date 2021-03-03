@@ -12,6 +12,7 @@ import (
 	"bufio"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"math"
 	"os"
 	"time"
 )
@@ -191,6 +192,7 @@ func (db *DB) flush() error {
 	// 初始的时候, level = 0, 给 levels设置初始值
 	if db.manifest.level == 0 {
 		db.manifest.levels = append(db.manifest.levels, make([]sstableMeta, 0))
+		db.manifest.filesizes = append(db.manifest.filesizes, 0)
 		db.manifest.level++
 	}
 	nsm := sstableMeta{
@@ -266,24 +268,38 @@ PS. 每次第二种条件都是在发生了第一种条件之后触发的
 最后利用两层的输入文件，在不扩大level i+1输入文件的前提下，查找level i层的有key重叠的文件，结果为蓝线标准的文件，构成最终的输入文件；
 */
 func (db *DB) judgeCompact() {
-	zeroLen := len(db.manifest.levels[0])
+	cur := 0
+	var more bool
+	for {
+		more = majorCompaction(db, cur)
+		if !more {
+			break
+		}
+		cur++
+	}
+}
+
+// major compaction, 对 > 1 层的level进行合并; 是一个递归函数
+func majorCompaction(db *DB, cur int) bool {
+	zeroLen := len(db.manifest.levels[cur])
+	nxt := cur + 1
 	// TODO: 这个值 (4) 应当可配置
-	if zeroLen <= 4 { // 不需要进行压缩
-		return
+	if cur == 0 && zeroLen <= 4 { // 不需要进行压缩
+		return false
 	}
 	// 先处理从0层到第1层的情况
-	minKey := db.manifest.levels[0][zeroLen-1].minKey
-	maxKey := db.manifest.levels[0][zeroLen-1].maxKey
+	minKey := db.manifest.levels[cur][zeroLen-1].minKey
+	maxKey := db.manifest.levels[cur][zeroLen-1].maxKey
 	preToCompact := make([]sstableMeta, 0)
 	// 新加入的 sstableMeta 一定是最后一个
 	// 选择跟最新的sstableMeta有区间重合的
 	for i := 0; i < zeroLen-1; i++ {
 		// 排除两种非重合的情况
-		if !((minKey >= db.manifest.levels[0][i].maxKey) || (maxKey <= db.manifest.levels[0][i].minKey)) {
-			preToCompact = append(preToCompact, db.manifest.levels[0][i])
+		if !((minKey >= db.manifest.levels[cur][i].maxKey) || (maxKey <= db.manifest.levels[cur][i].minKey)) {
+			preToCompact = append(preToCompact, db.manifest.levels[cur][i])
 		}
 	}
-	preToCompact = append(preToCompact, db.manifest.levels[0][zeroLen-1])
+	preToCompact = append(preToCompact, db.manifest.levels[cur][zeroLen-1])
 	// 遍历第0层需要合并的sstable, 找到key的区间
 	for i := 0; i < len(preToCompact); i++ {
 		if preToCompact[i].minKey < minKey {
@@ -293,20 +309,67 @@ func (db *DB) judgeCompact() {
 			maxKey = preToCompact[i].maxKey
 		}
 	}
-	// 找到第1层跟key重合的列表. 需要考虑当level 1还没有文件的情况
-	if db.manifest.level == 1 {
+	// 找到第1层跟key重合的列表. 需要考虑当level 1 (level nxt)还没有文件的情况
+	if db.manifest.level == nxt {
 		// 需要扩展出一层
 		db.manifest.levels = append(db.manifest.levels, make([]sstableMeta, 0))
+		db.manifest.filesizes = append(db.manifest.filesizes, 0)
 		db.manifest.level++
 	} else {
 		// 将 level 1 要合并的文件加入到 preToCompact 中
-		for i := 0; i < len(db.manifest.levels[1]); i++ {
-			if !((minKey >= db.manifest.levels[1][i].maxKey) || (maxKey <= db.manifest.levels[1][i].minKey)) {
-				preToCompact = append(preToCompact, db.manifest.levels[1][i])
+		for i := 0; i < len(db.manifest.levels[nxt]); i++ {
+			if !((minKey >= db.manifest.levels[nxt][i].maxKey) || (maxKey <= db.manifest.levels[nxt][i].minKey)) {
+				preToCompact = append(preToCompact, db.manifest.levels[nxt][i])
 			}
 		}
 	}
 	sstm := compact(preToCompact)
 	sstm.minKey = minKey
 	sstm.maxKey = maxKey
+
+	// 得到了新的文件之后需要将其他的sstableMeta删除
+	// l0 保存新的 sstableMeta结构
+	l0 := make([]sstableMeta, 0)
+	db.manifest.filesizes[cur] = 0
+	for i := 0; i < len(db.manifest.levels[cur]); i++ {
+		in := false
+		for j := 0; j < len(preToCompact); j++ {
+			if db.manifest.levels[cur][i] == preToCompact[j] {
+				in = true
+				break
+			}
+		}
+		if !in {
+			l0 = append(l0, db.manifest.levels[cur][i])
+		}
+	}
+	db.manifest.levels[cur] = l0
+
+	// 删除 l1的
+	l1 := make([]sstableMeta, 0)
+	db.manifest.filesizes[nxt] = 0
+	for i := 0; i < len(db.manifest.levels[nxt]); i++ {
+		in := false
+		for j := 0; j < len(preToCompact); j++ {
+			if db.manifest.levels[nxt][i] == preToCompact[j] {
+				in = true
+			}
+		}
+		if !in {
+			// 累计filesize. filesize要先置零
+			db.manifest.filesizes[nxt] += db.manifest.levels[nxt][i].filesize
+			l1 = append(l1, db.manifest.levels[nxt][i])
+		}
+	}
+	db.manifest.levels[nxt] = l1
+
+	db.manifest.filesizes[nxt] += sstm.filesize
+	// 将新的 sstableMeta添加进去
+	db.manifest.levels[nxt] = append(db.manifest.levels[nxt], *sstm)
+	threshold := int(math.Pow10(nxt-1)) * 1024 * 1024
+	logrus.Info(db.manifest.filesizes[nxt])
+	if db.manifest.filesizes[nxt] > threshold {
+		return true
+	}
+	return false
 }

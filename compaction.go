@@ -136,8 +136,17 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 	content = sst.footer.encode()
 	sst.writer.write(content)
 
+	// 获得文件大小信息
+	stat, err := sst.writer.file.Stat()
+	if err != nil {
+		panic(err)
+	}
+	filesize := stat.Size()
+
 	// 重命名文件, 并且将文件关闭
 	sst.close()
+
+	nsm.filesize = int(filesize)
 
 	return &nsm
 }

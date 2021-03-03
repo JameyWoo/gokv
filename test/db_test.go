@@ -11,12 +11,14 @@ package test
 import (
 	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 	"strconv"
 	"testing"
 	"time"
 )
 
 // 文件的打开与写入
+// TODO: 目前compaction最大的问题在于
 func TestDbOpen(t *testing.T) {
 	db, err := gokv.Open("db5", &gokv.Options{ConfigPath: "../gokv.yaml"})
 	if err != nil {
@@ -78,8 +80,9 @@ func TestFlushSSTable(t *testing.T) {
 		logrus.Error(err)
 	}
 	defer db.Close()
-	for i := 0; i < 2000; i++ {
-		db.Put(strconv.Itoa(i)+"_key", strconv.Itoa(i)+"_value")
+	for i := 0; i < 200000; i++ {
+		x := rand.Int() % 1000000
+		db.Put(gokv.IntToStringWithZero8(x), gokv.IntToStringWithZero8(x))
 	}
 	time.Sleep(3 * time.Second)
 }

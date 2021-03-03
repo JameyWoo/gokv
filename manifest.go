@@ -23,9 +23,10 @@ package gokv
 在同一个level中(除level 0), 所有的 sstableMeta 按照他们的key来排序
 */
 type Manifest struct {
-	dir    string          // 保存 sstable文件的目录
-	levels [][]sstableMeta // 二维, 有多层, 每一层都有多个 sstableMeta
-	level  int             // 当前的最大层数
+	dir       string          // 保存 sstable文件的目录
+	levels    [][]sstableMeta // 二维, 有多层, 每一层都有多个 sstableMeta
+	filesizes []int           // 每层的文件size数; level 0不需要维护层数, 从level 1 开始维护
+	level     int             // 当前的最大层数
 }
 
 // 一个 sstable 的元数据

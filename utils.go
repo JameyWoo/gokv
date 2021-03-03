@@ -10,6 +10,7 @@ package gokv
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -67,4 +68,9 @@ func BytesCombine(pBytes ...[]byte) []byte {
 // 获取用字符串表示的时间
 func GetTimeString() string {
 	return strconv.FormatInt(time.Now().UnixNano(), 10)
+}
+
+// 转化为字符串, 不够的位补零
+func IntToStringWithZero8(x int) string {
+	return fmt.Sprintf("%08d", x)
 }
