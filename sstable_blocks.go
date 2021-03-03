@@ -131,7 +131,7 @@ func (mib *metaindexBlock) encode() []byte {
 	binary.LittleEndian.PutUint64(offsetByte, uint64(mib.offset))
 	binary.LittleEndian.PutUint64(countByte, uint64(mib.count))
 	binary.LittleEndian.PutUint64(sizeByte, uint64(mib.size))
-	return BytesCombine(offsetByte, sizeByte, countByte)
+	return BytesCombine(offsetByte, countByte, sizeByte)
 }
 
 // datablock 索引结构

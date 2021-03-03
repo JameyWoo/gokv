@@ -24,9 +24,10 @@ type SkipListNode struct {
 
 // 一个完整的跳跃表结构
 type SkipList struct {
-	maxLevel   int           // 最大的层级
-	len        int           // 元素的个数
-	head, tail *SkipListNode // 跳跃表的头和尾
+	maxLevel       int           // 最大的层级
+	len            int           // 元素的个数
+	head, tail     *SkipListNode // 跳跃表的头和尾
+	minKey, maxKey string        // 保存最大和最小key
 }
 
 // 这个maxLevel有一个默认值.
@@ -47,6 +48,17 @@ type pNode struct {
 
 // 插入一个KeyValue
 func (sl *SkipList) Put(kv KeyValue) {
+	// 设置最大最小key
+	if sl.maxKey == "" {
+		sl.maxKey = kv.Key
+	} else if kv.Key > sl.maxKey {
+		sl.maxKey = kv.Key
+	}
+	if sl.minKey == "" {
+		sl.minKey = kv.Key
+	} else if kv.Key < sl.minKey {
+		sl.minKey = kv.Key
+	}
 	sl.len++
 	key := kv.Key
 	p := sl.head
@@ -165,28 +177,12 @@ func (sl *SkipList) randHeight() int {
 	return h
 }
 
-// 迭代器
-type Iterator struct {
-	tail *SkipListNode
-	now  *SkipListNode
+// 最小key
+func (sl *SkipList) getMinKey() string {
+	return sl.minKey
 }
 
-// 还要实现一个迭代器, 用来从小到达迭代所有的KeyValue元素
-func (sl *SkipList) NewIterator() *Iterator {
-	it := &Iterator{
-		tail: sl.tail,
-		now:  sl.head,
-	}
-	return it
-}
-
-// 获取下一个元素, 两个返回值
-// 第一个为 KeyValue结果, 第二个为 ok表示是否存在元素
-func (it *Iterator) Next() (KeyValue, bool) {
-	if it.now.pointers[0] == it.tail {
-		return KeyValue{}, false
-	}
-	kv := KeyValue{Key: it.now.pointers[0].key, Val: it.now.pointers[0].value}
-	it.now = it.now.pointers[0]
-	return kv, true
+// 最大key
+func (sl *SkipList) getMaxKey() string {
+	return sl.maxKey
 }

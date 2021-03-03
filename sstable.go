@@ -11,8 +11,6 @@ package gokv
 import (
 	"github.com/sirupsen/logrus"
 	"os"
-	"strconv"
-	"time"
 )
 
 /**
@@ -73,7 +71,7 @@ func NewSSTable(dir, filename string, memdb *MemDB) *SSTable {
 // 创建 sstable 文件并打开
 func (sst *SSTable) open() {
 	// 取一个临时的名字, 在 close 的时候改名
-	sst.tmpFilename = strconv.FormatInt(time.Now().UnixNano(), 10) + ".sst.tmp"
+	sst.tmpFilename = GetTimeString() + ".sst.tmp"
 	file, err := os.Create(sst.dir + "/" + sst.tmpFilename)
 	sst.writer.file = file
 	if err != nil {
@@ -89,7 +87,7 @@ func (sst *SSTable) close() {
 }
 
 // sstable的写方法. 传递一个 memdb进来, 然后将其内容写入到 sstable文件, 最后将memdb删除
-func (sst *SSTable) Write() {
+func (sst *SSTable) Write() int {
 	// 先初始化文件描述符, 打开文件
 	sst.open()
 
@@ -153,7 +151,7 @@ func (sst *SSTable) Write() {
 		sst.writer.write(content)
 		offset += len(content)
 	}
-	sst.metaindexBlock.set(metaBlockOffset, offset-metaBlockOffset, len(sst.metaBlock))
+	sst.metaindexBlock.set(metaBlockOffset, len(sst.metaBlock), 2048/8)
 
 	// 向文件中写入 metaindexBlock
 	content = sst.metaindexBlock.encode()
@@ -171,8 +169,15 @@ func (sst *SSTable) Write() {
 	content = sst.footer.encode()
 	sst.writer.write(content)
 
+	// 获取刚写入的文件的大小, 并返回
+	stat, err := sst.writer.file.Stat()
+	if err != nil {
+		panic(err)
+	}
+
 	// 重命名文件, 并且将文件关闭
 	sst.close()
+	return int(stat.Size())
 }
 
 // sstable 的写类

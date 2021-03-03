@@ -35,7 +35,6 @@ func newSSTableIter(file *os.File) *sstableIter {
 	si := sstableIter{}
 	r := sstReader{
 		file: file,
-		key:  "",
 	}
 	si.r = &r
 	stat, err := r.file.Stat()
@@ -52,6 +51,10 @@ func newSSTableIter(file *os.File) *sstableIter {
 	// 获取第一个datablock
 	si.content = r.getDataBlock(pIndexBlock.entries[0].offset, pIndexBlock.entries[0].size).content
 	return &si
+}
+
+func (si *sstableIter) close() {
+	si.r.close()
 }
 
 /*

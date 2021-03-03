@@ -33,7 +33,18 @@ import (
 
 type sstReader struct {
 	file *os.File
-	key  string // 要查找的 key
+}
+
+func (r *sstReader) open(filepath string) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		panic(err)
+	}
+	r.file = file
+}
+
+func (r *sstReader) close() {
+	r.file.Close()
 }
 
 func (r *sstReader) getTest() { // 对 sstReader进行测试的函数, debug
@@ -65,7 +76,7 @@ func (r *sstReader) getTest() { // 对 sstReader进行测试的函数, debug
 
 PS. 需要加入缓存结构
 */
-func (r *sstReader) FindKey() (*Value, bool) {
+func (r *sstReader) FindKey(key string) (*Value, bool) {
 	stat, err := r.file.Stat()
 	if err != nil {
 		panic("get Stat failed")
@@ -74,7 +85,7 @@ func (r *sstReader) FindKey() (*Value, bool) {
 	footerSize := 24
 	pFooter := r.getFooter(int(size)-footerSize, footerSize)
 	pIndexBlock := r.getIndexBlock(pFooter.indexBlockIndex, int(size)-footerSize-pFooter.indexBlockIndex)
-	if r.key > pIndexBlock.entries[len(pIndexBlock.entries)-1].key {
+	if key > pIndexBlock.entries[len(pIndexBlock.entries)-1].key {
 		return nil, false
 	}
 	// 搜索 pIndexBlock, 找到key对应的datablock的位置. key 是从小到大的
@@ -82,13 +93,14 @@ func (r *sstReader) FindKey() (*Value, bool) {
 	blockOffset := -1
 	blockLen := -1
 	for i := 0; i < len(pIndexBlock.entries); i++ {
-		cntR += pIndexBlock.entries[i].count     // 排位的上限
-		if r.key <= pIndexBlock.entries[i].key { // index 里保存的应该是最大值
+		// ! fix bug: 之前这里是 += ; 导致计数过多! 于是debug很久. 发现之后想起之前有一个bug也是由这个引起的, 哎!
+		cntR = pIndexBlock.entries[i].count    // 排位的上限
+		if key <= pIndexBlock.entries[i].key { // index 里保存的应该是最大值
 			blockOffset = pIndexBlock.entries[i].offset
 			blockLen = pIndexBlock.entries[i].size
 			break // fix bug: 之前忘记了 break, 导致总是查找到最后面的那个block!
 		}
-		cntL += pIndexBlock.entries[i].count // 排位的下限
+		cntL = pIndexBlock.entries[i].count // 排位的下限
 	}
 	// 如果 offset == -1, 说明 entries 中没有条目(当然, 这种情况基本不会出现)
 	if blockOffset == -1 {
@@ -100,20 +112,21 @@ func (r *sstReader) FindKey() (*Value, bool) {
 	metaL := (cntL + 1) / 2048
 	metaR := cntR / 2048
 	if metaL == metaR { // 范围是一个 metaBlock
+		// ! debug: 这里获取 bloom filter的时候, 出现了 len=512 的情况, 导致 content超标. pMetaindexBlock.size的设置有问题
 		pMetaBlock := r.getMetaBlock(pMetaindexBlock.offset+metaL*pMetaindexBlock.size, pMetaindexBlock.size)
-		if !pMetaBlock.bf.MayContain(r.key) {
+		if !pMetaBlock.bf.MayContain(key) {
 			return nil, false
 		}
 	} else { // 范围是两个 metaBlock
 		pMetaBlockL := r.getMetaBlock(pMetaindexBlock.offset+metaL*pMetaindexBlock.size, pMetaindexBlock.size)
 		pMetaBlockR := r.getMetaBlock(pMetaindexBlock.offset+metaR*pMetaindexBlock.size, pMetaindexBlock.size)
-		if !pMetaBlockL.bf.MayContain(r.key) && !pMetaBlockR.bf.MayContain(r.key) {
+		if !pMetaBlockL.bf.MayContain(key) && !pMetaBlockR.bf.MayContain(key) {
 			return nil, false
 		}
 	}
 	// 从以 blockOffset 为偏移的 datablock中查找 key
 	pDataBlock := r.getDataBlock(blockOffset, blockLen)
-	return findKeyFromDataBlock(r.key, pDataBlock)
+	return findKeyFromDataBlock(key, pDataBlock)
 }
 
 /*
