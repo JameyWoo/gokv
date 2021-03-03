@@ -86,7 +86,7 @@ func TestFlushSSTable(t *testing.T) {
 		x := rand.Int() % 1000000
 		db.Put(gokv.IntToStringWithZero8(x), gokv.IntToStringWithZero8(x))
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 }
 
 // 测试 flush 使用 sstable
@@ -112,5 +112,5 @@ func TestDBReadSSTable(t *testing.T) {
 	} else {
 		logrus.Info("nothing!")
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 }

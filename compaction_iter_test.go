@@ -22,7 +22,7 @@ func TestCompactionIter(t *testing.T) {
 	//file, err := os.Open("test/compaction_test/test1.sst")
 	//file, err := os.Open("test/compaction_test/test2.sst")
 	//file, err := os.Open("test/compaction_test/1614680072718482600.sst")
-	file, err := os.Open("test/db6/1614749271926443000.sst")
+	file, err := os.Open("test/db6/1614757862043574500.sst")
 	if err != nil {
 		panic(err)
 	}

@@ -233,13 +233,9 @@ func (db *DB) findOnOneLevel(level int, key string) (Value, bool) {
 	for i := 0; i < len(db.manifest.levels[level]); i++ {
 		if key <= db.manifest.levels[level][i].maxKey && key >= db.manifest.levels[level][i].minKey {
 			ssr := sstReader{}
-			file, err := os.Open(db.dir + "/" + db.manifest.levels[level][i].filename)
-			if err != nil {
-				panic(err)
-			}
-			ssr.file = file
-			ssr.key = key
-			pv, find := ssr.FindKey()
+			defer ssr.close()
+			ssr.open(db.dir + "/" + db.manifest.levels[level][i].filename)
+			pv, find := ssr.FindKey(key)
 			if find {
 				return *pv, true
 			}
@@ -373,6 +369,16 @@ func majorCompaction(db *DB, cur int) bool {
 		}
 	}
 	db.manifest.levels[nxt] = l1
+
+	// 删除 sstableMeta 里的文件
+	for i := 0; i < len(preToCompact); i++ {
+		// ! fix bug: 想要删除文件但是发现删除不了. 说是文件被使用. 说明我使用这些文件compaction的时候并没有即使将他们close
+		//logrus.Info(preToCompact[i].dir + "/" + preToCompact[i].filename)
+		err := os.Remove(preToCompact[i].dir + "/" + preToCompact[i].filename)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	db.manifest.filesizes[nxt] += sstm.filesize
 	// 将新的 sstableMeta添加进去

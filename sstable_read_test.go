@@ -32,13 +32,10 @@ func TestTest(t *testing.T) {
 
 func TestFindKey(t *testing.T) {
 	sstR := sstReader{}
-	file, err := os.Open("test/db6/1614749271926443000.sst")
-	if err != nil {
-		panic(err)
-	}
-	sstR.file = file
-	sstR.key = IntToStringWithZero8(12345)
-	value, ok := sstR.FindKey()
+	defer sstR.close()
+	sstR.open("test/db6/1614749271926443000.sst")
+	value, ok := sstR.FindKey(IntToStringWithZero8(12345))
+	sstR.close()
 	if ok {
 		logrus.Info("value: ", value)
 	} else {
@@ -56,8 +53,7 @@ func TestFindAll(t *testing.T) {
 	}
 	sstR.file = file
 	for i := 800; i < 1200; i++ {
-		sstR.key = strconv.Itoa(i) + "_key"
-		value, ok := sstR.FindKey()
+		value, ok := sstR.FindKey(strconv.Itoa(i) + "_key")
 		if ok {
 			logrus.Info("value: ", value)
 		} else {

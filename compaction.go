@@ -91,6 +91,11 @@ func compact(sstMetas []sstableMeta) *sstableMeta {
 		// 处理 kv, 将 kv 添加到新的 sstable中. 内容类似 sstable.Write()
 		sstAddKeyValue(sst, metaB, content, &offset, &globalCount, kv)
 	}
+	// 可以关闭文件了
+	for _, si := range iters {
+		si.close()
+	}
+
 	// 剩下一个lastKey需要添加
 	sstAddKeyValue(sst, metaB, content, &offset, &globalCount, lastKey)
 	// 还可能剩下一些dataBlock
