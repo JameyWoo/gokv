@@ -25,4 +25,27 @@
 缓存不能无限增长, 因此对每个结构我都需要限制他们的最大的大小. 例如, 默认限制大小为 8MB
 */
 
+// 缓存的具体实现看 lru.go
+
 package gokv
+
+// 全局的变量; 之所以对每一种缓存设定一个变量, 是为了对每类缓存的大小进行管理. 混杂在一起不好管理
+var DataBlockCache *Lru
+var MetaBlockCache *Lru
+
+// 其他的Cache, 统一管理;
+var OtherCache *Lru
+
+// 初始化这个缓存; 这里的全局变量定义和初始化很重要
+func cacheInit() {
+	// 这里的值可以通过配置文件得到
+	DataBlockCache = NewLru(8000000 / 4096)
+	MetaBlockCache = NewLru(8000000 / 2048)
+	OtherCache = NewLru(8000000 / 4096)
+}
+
+type BlockCacheKey struct {
+	filepath string
+	offset   int
+	len      int
+}

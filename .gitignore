@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 db[0-9]*/
+*_db/
 cmake-build-debug/
 .*_test/
 
