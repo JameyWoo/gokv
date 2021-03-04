@@ -11,7 +11,6 @@ package gokv
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"time"
@@ -41,28 +40,6 @@ func IsDir(path string) bool {
 // 判断所给路径是否为文件
 func IsFile(path string) bool {
 	return !IsDir(path)
-}
-
-// 读取一个文件指定偏移之后的指定字节数并返回 []byte
-func ReadOffsetLen(f *os.File, offset, len int) []byte {
-	res := make([]byte, 0)
-	buf := make([]byte, 1024)
-	count := 0
-	for count < len {
-		size, err := f.ReadAt(buf, int64(offset+count))
-		// ! bug: 如果不该督导 io.EOF 却读到了, 则会陷入死循环.
-		if err != nil { // 读取到文件结尾时会出现 EOF错误
-			if err == io.EOF && size+count >= len {
-
-			} else {
-				panic("ReadOffsetLen failed!")
-			}
-		}
-		count += size
-		res = append(res, buf...)
-	}
-	// 如果读多了, 那么直接截取
-	return res[:len]
 }
 
 // 将多个 []byte 合并成一个

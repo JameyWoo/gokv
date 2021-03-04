@@ -27,15 +27,19 @@ package gokv
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 	"time"
 )
 
 type sstReader struct {
-	file *os.File
+	file     *os.File
+	filepath string // 为每一个 sstReader增加一个 filepath字段, 从而在缓存中使用
 }
 
 func (r *sstReader) open(filepath string) {
+	r.filepath = filepath // 设置
+	// 打开一个 sstable Reader 的时候, 先读取缓存
 	file, err := os.Open(filepath)
 	if err != nil {
 		panic(err)
@@ -196,21 +200,50 @@ func getValueByOffset(offset int, pDataBlock *dataBlock) *Value {
 // 根据文件偏移获得一个 footer指针
 // 首先 footer 的size是固定的, 所以根据文件的总size找到 footer 的偏移, 然后分别找到对应的offset
 func (r *sstReader) getFooter(offset, len int) *footer {
+	ft, get := OtherCache.Get(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	})
+	if get { // 如果得到了缓存, 那么直接获取缓存返回. 否则从文件中读取之后, 再添加到缓存中
+		x := ft.(*footer)
+		return x
+	}
 	aFooter := footer{}
-	content := ReadOffsetLen(r.file, offset, len)
+	content := r.ReadOffsetLen(offset, len)
 	aFooter.metaindexBlockIndex = int(binary.LittleEndian.Uint64(content[:8]))
 	aFooter.indexBlockIndex = int(binary.LittleEndian.Uint64(content[8:16]))
 	aFooter.magic = int(binary.LittleEndian.Uint64(content[16:]))
+	OtherCache.Insert(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	}, &aFooter)
 	return &aFooter
 }
 
 // 根据文件偏移获得一个 metaindexBlock指针
 func (r *sstReader) getMetaindexBlock(offset, len int) *metaindexBlock {
+	// 缓存
+	mib, get := OtherCache.Get(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	})
+	if get { // 如果得到了缓存, 那么直接获取缓存返回. 否则从文件中读取之后, 再添加到缓存中
+		x := mib.(*metaindexBlock)
+		return x
+	}
 	aMetaindexBlock := metaindexBlock{}
-	content := ReadOffsetLen(r.file, offset, len)
+	content := r.ReadOffsetLen(offset, len)
 	aMetaindexBlock.offset = int(binary.LittleEndian.Uint64(content[:8]))
 	aMetaindexBlock.count = int(binary.LittleEndian.Uint64(content[8:16]))
 	aMetaindexBlock.size = int(binary.LittleEndian.Uint64(content[16:]))
+	OtherCache.Insert(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	}, &aMetaindexBlock)
 	return &aMetaindexBlock
 }
 
@@ -218,8 +251,17 @@ func (r *sstReader) getMetaindexBlock(offset, len int) *metaindexBlock {
 // 一个 indexBlock 的 entry 的长度是 不固定的, 它由
 // keyLenByte, offsetByte, countByte, sizeByte, []byte(sstableIter.key))... 组成, 共四个字段
 func (r *sstReader) getIndexBlock(offset, len int) *indexBlock {
+	ib, get := OtherCache.Get(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	})
+	if get { // 如果得到了缓存, 那么直接获取缓存返回. 否则从文件中读取之后, 再添加到缓存中
+		x := ib.(*indexBlock)
+		return x
+	}
 	aIndexBlock := indexBlock{}
-	content := ReadOffsetLen(r.file, offset, len)
+	content := r.ReadOffsetLen(offset, len)
 	entry := indexEntry{}
 	off := 0
 	for off < len {
@@ -233,24 +275,53 @@ func (r *sstReader) getIndexBlock(offset, len int) *indexBlock {
 		off += 32 + int(keyLen)
 		content = content[32+int(keyLen):]
 	}
+	OtherCache.Insert(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	}, &aIndexBlock)
 	return &aIndexBlock
 }
 
 // 根据文件偏移获得一个 metaBlock指针
 // 不需要设置 metaBlock 或者 bloom filter 的count, 因为使用的时候用不到
 func (r *sstReader) getMetaBlock(offset, len int) *metaBlock {
+	mb, get := MetaBlockCache.Get(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	})
+	if get { // 如果得到了缓存, 那么直接获取缓存返回. 否则从文件中读取之后, 再添加到缓存中
+		x := mb.(*metaBlock)
+		return x
+	}
 	// 这个最好配置在文件中, 参数跟写入部分一致
 	aMetaBlock := newMetaBlock(2048)
-	content := ReadOffsetLen(r.file, offset, len)
+	content := r.ReadOffsetLen(offset, len)
 	aMetaBlock.bf.decode(content)
+	MetaBlockCache.Insert(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	}, aMetaBlock)
 	return aMetaBlock
 }
 
 // 根据文件偏移获得一个 dataBlock指针
 // 先读取 dataBlock indexKey, 再
 func (r *sstReader) getDataBlock(offset, len int) *dataBlock {
+	// 从 LRU缓存中找, 缓存应当是一个全局的变量, 在 init 中初始化,
+	db, get := DataBlockCache.Get(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	})
+	if get { // 如果得到了缓存, 那么直接获取缓存返回. 否则从文件中读取之后, 再添加到缓存中
+		x := db.(*dataBlock)
+		return x
+	}
 	aDataBlock := dataBlock{}
-	content := ReadOffsetLen(r.file, offset, len)
+	content := r.ReadOffsetLen(offset, len)
 	indexKeyLen := int(binary.LittleEndian.Uint64(content[len-8:]))
 	for i := len - 8 - 8*indexKeyLen; i < len-8; i += 8 {
 		aDataBlock.indexKeys = append(aDataBlock.indexKeys, binary.LittleEndian.Uint64(content[i:i+8]))
@@ -261,5 +332,32 @@ func (r *sstReader) getDataBlock(offset, len int) *dataBlock {
 	// maxKey 和 count 在内存上都是无效的, 因此可以随便赋一个值
 	aDataBlock.maxKey = ""
 	aDataBlock.count = 0
+	// 插入到缓存中
+	DataBlockCache.Insert(BlockCacheKey{
+		filepath: r.filepath,
+		offset:   offset,
+		len:      len,
+	}, &aDataBlock) // 保存地址, 而不是完整结构
 	return &aDataBlock
+}
+
+// 读取一个文件指定偏移之后的指定字节数并返回 []byte
+func (r *sstReader) ReadOffsetLen(offset, len int) []byte {
+	f := r.file
+	res := make([]byte, 0)
+	buf := make([]byte, 1024)
+	count := 0
+	for count < len {
+		size, err := f.ReadAt(buf, int64(offset+count))
+		// ! bug: 如果不该督导 io.EOF 却读到了, 则会陷入死循环.
+		if err != nil { // 读取到文件结尾时会出现 EOF错误
+			if !(err == io.EOF && size+count >= len) {
+				panic("ReadOffsetLen failed!")
+			}
+		}
+		count += size
+		res = append(res, buf...)
+	}
+	// 如果读多了, 那么直接截取
+	return res[:len]
 }

@@ -10,26 +10,14 @@ package gokv
 
 import "github.com/sirupsen/logrus"
 
-// Lru 的 Key, 用来标识一个LRU节点
-type LruKey struct {
-	Key int // 正式接入中需要进行修改. 最好是写成接口.
-}
-
-// Lru 的 Value, 比如key是 fd, Value 则是它的元数据
-type LruValue struct {
-	Value int
-}
+type LruKey interface{} // key 是一个空接口;
 
 // Lru 双向链表的节点. 链表头部为最近被访问的, 尾部为应该剔除的
 type LruNode struct {
-	k    LruKey   // 键
-	v    LruValue // 值
-	prev *LruNode // 双向链表
+	k    LruKey      // 键
+	v    interface{} // 值, 一个空接口
+	prev *LruNode    // 双向链表
 	next *LruNode
-}
-
-func (k *LruKey) Compare(k2 *LruKey) bool {
-	return false
 }
 
 // LRU 结构
@@ -39,7 +27,7 @@ type Lru struct {
 	m    map[LruKey]*LruNode
 }
 
-func (l *Lru) Insert(lk LruKey, lv LruValue) {
+func (l *Lru) Insert(lk LruKey, lv interface{}) {
 	// 先判断 lk 是否在l.m中
 	node, ok := l.m[lk]
 	if !ok { // 如果不在hash表里面, 则直接插入新节点
@@ -79,12 +67,12 @@ func (l *Lru) Insert(lk LruKey, lv LruValue) {
 	}
 }
 
-func (l *Lru) Get(lk LruKey) (LruValue, bool) {
+func (l *Lru) Get(lk LruKey) (interface{}, bool) {
 	node, ok := l.m[lk]
 	if ok {
 		return node.v, ok
 	}
-	return LruValue{}, false
+	return 0, false
 }
 
 func (l *Lru) Print() {

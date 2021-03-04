@@ -33,7 +33,7 @@ func TestTest(t *testing.T) {
 func TestFindKey(t *testing.T) {
 	sstR := sstReader{}
 	defer sstR.close()
-	sstR.open("test/db6/1614749271926443000.sst")
+	sstR.open("test/db6/1614770312880889600.sst")
 	value, ok := sstR.FindKey(IntToStringWithZero8(12345))
 	sstR.close()
 	if ok {
@@ -62,4 +62,42 @@ func TestFindAll(t *testing.T) {
 	}
 
 	time.Sleep(1 * time.Second)
+}
+
+func getOnce() {
+	sstR := sstReader{}
+	defer sstR.close()
+	sstR.open("test/db6/1614770311758931700.sst")
+	value, ok := sstR.FindKey(IntToStringWithZero8(1277))
+	sstR.close()
+	if ok {
+		_ = value
+		//logrus.Info("value: ", value)
+	} else {
+		logrus.Info("find nothing")
+	}
+}
+
+// 读缓存的测试. 连续read同一个文件两次, 看看第二次的时候是否会经过缓存; 通过查找一个key来体现
+func TestReadDataBlockCache(t *testing.T) {
+	getOnce()
+	// 第二次
+	getOnce()
+}
+
+/*
+对缓存性能做测试;
+开启缓存时: BenchmarkGetOnce-4   	   10000	    104201 ns/op
+关闭缓存时: BenchmarkGetOnce-4   	    4220	    266825 ns/op
+
+这啥呀!!! 为什么关闭缓存还快几倍???
+
+原因: 应该是因为测试范围很小, 操作系统(以及go标准库)就给我缓存了这个文件, 所以很快. 而维护缓存还需要一定的时间.
+
+结论: 这个测试不科学!!!
+*/
+func BenchmarkGetOnce(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		getOnce()
+	}
 }

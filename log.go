@@ -31,7 +31,7 @@ func (s *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(msg), nil
 }
 
-func init() {
+func logInit() {
 	logrus.SetFormatter(new(MyFormatter))
 	logrus.SetReportCaller(true)
 }
