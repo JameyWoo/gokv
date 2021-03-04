@@ -53,11 +53,14 @@ func handleConn(conn net.Conn) {
 	go clientWriter(conn, toClient)
 	// 当连接第一次打开的时候, 会传递数据库的目录进来供 DB.Open() 使用
 	dir, err := ReceiveBytesFromConn(conn)
+	dirStr := string(dir)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
-	db, err := gokv.Open(string(dir), &gokv.Options{ConfigPath: "./gokv.yaml"})
+	db, err := gokv.Open(dirStr, &gokv.Options{ConfigPath: "./gokv.yaml"})
+	// 使用 db 一定不要忘记 close! 不然剩下的内容它不会flush到磁盘上!
+	defer db.Close()
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -76,7 +79,14 @@ func handleConn(conn net.Conn) {
 		// server 需要支持三种命令, GET SET DEL. 使用switch对三种情况分别处理
 		msg := Message{}
 		// 解析消息
-		msg.parse(fromClient)
+		err = msg.parse(fromClient)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+		logrus.Info(msg.op)
+		logrus.Info(string(msg.key))
+		logrus.Info(string(msg.value))
 		// 判断消息类型并执行
 		switch msg.op {
 		case gokv.PUT:
@@ -115,6 +125,7 @@ func clientWriter(conn net.Conn, ch <-chan []byte) {
 	for msg := range ch {
 		msgByte := msg
 		msgByteNew := BytesCombine(IntToBytes(len(msgByte)), msgByte)
+		logrus.Info("client write")
 		conn.Write(msgByteNew)
 	}
 }

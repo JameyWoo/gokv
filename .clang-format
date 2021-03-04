@@ -1,0 +1,9 @@
+# config: https://www.jianshu.com/p/ba25305d3cba
+
+# Run manually to reformat a file:
+# clang-format -i --style=file <file>
+# find . -iname '*.cc' -o -iname '*.h' -o -iname '*.h.in' | xargs clang-format -i --style=file
+BasedOnStyle: Google
+DerivePointerAlignment: false
+
+IndentWidth:     4

@@ -9,3 +9,5 @@ cmake-build-debug/
 *.o
 *.tmp
 *.sst
+
+client
