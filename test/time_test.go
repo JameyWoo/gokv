@@ -9,13 +9,11 @@
 package test
 
 import (
-	"fmt"
 	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"testing"
-	"time"
 )
 
 func TestTimeString(t *testing.T) {
@@ -25,10 +23,4 @@ func TestTimeString(t *testing.T) {
 
 	a, b := os.Create("nihao ")
 	_, _ = a, b
-}
-
-func TestPrintTime(t *testing.T) {
-	for i := 0; i < 1000; i++ {
-		fmt.Println(time.Now().UnixNano())
-	}
 }
