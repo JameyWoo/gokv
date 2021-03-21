@@ -31,6 +31,8 @@ A persistent, LSM tree structured key value database engine implemented by go la
 - [ ] 实现字符串压缩算法
 - [x] 分块读文件, 分块处理
 - [x] manifest原数据组织
+- [x] 实现供网络操作的服务端
+- [x] c语言版本操作的客户端
 
 ## Dev log
 
