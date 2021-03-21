@@ -81,6 +81,7 @@ func (db *dataBlock) encode() []byte {
 	}
 	indexCountByte := make([]byte, 8)
 	binary.LittleEndian.PutUint64(indexCountByte, uint64(len(db.indexKeys)))
+	//logrus.Info(uint64(len(db.indexKeys)), indexCountByte)
 	return BytesCombine(db.content, allIndexByte, indexCountByte)
 }
 

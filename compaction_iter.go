@@ -42,6 +42,7 @@ func newSSTableIter(file *os.File) *sstableIter {
 		panic("get Stat failed")
 	}
 	size := stat.Size()
+	//logrus.Info("size = ", size)
 	footerSize := 24
 	pFooter := r.getFooter(int(size)-footerSize, footerSize)
 	pIndexBlock := r.getIndexBlock(pFooter.indexBlockIndex, int(size)-footerSize-pFooter.indexBlockIndex)
@@ -49,6 +50,8 @@ func newSSTableIter(file *os.File) *sstableIter {
 	si.current = 0
 	si.offset = 0
 	// 获取第一个datablock
+	//logrus.Info(si.entries)
+	//logrus.Info(si.r.file.Name(), ": ", si.entries[si.current].offset, si.entries[si.current].size)
 	si.content = r.getDataBlock(pIndexBlock.entries[0].offset, pIndexBlock.entries[0].size).content
 	return &si
 }
@@ -70,10 +73,13 @@ func (si *sstableIter) Next() (KeyValue, bool) {
 			return KeyValue{}, false
 		}
 		// fix bug: 下面两个 赋值 原先都是 bug, 测试了好一会发现问题出在这里
-		// ! 这里 si.count 并不需要归零! 因为我entries中的count是累加的, 而不是每个datablock单独的. 所以不需要亲临
+		// ! 这里 si.count 并不需要归零! 因为我entries中的count是累加的, 而不是每个datablock单独的. 所以不需要清零
 		//si.count = 0
 		// ! 这里取偏移又是从 0 开始了, 所以不能直接使用 si.offset, 因为它是在sstable中全局的偏移
 		si.offset = 0
+		//logrus.Info(si.entries)
+		//logrus.Info(si.r.file.Name(), ": ", si.entries[si.current].offset, si.entries[si.current].size)
+		//logrus.Info(si.entries)
 		si.content = si.r.getDataBlock(si.entries[si.current].offset, si.entries[si.current].size).content
 	}
 	// 读取一个 key-value, 并计算偏移

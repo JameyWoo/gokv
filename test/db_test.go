@@ -9,6 +9,7 @@
 package test
 
 import (
+	"fmt"
 	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -77,14 +78,24 @@ func BenchmarkDbOpen(b *testing.B) {
 // 测试 flush 使用 sstable
 func TestFlushSSTable(t *testing.T) {
 	o := &gokv.Options{ConfigPath: "../gokv.yaml"}
-	db, err := gokv.Open("db5", o)
+	db, err := gokv.Open("db6", o)
 	if err != nil {
 		logrus.Error(err)
 	}
+	value := "hello_"
+	for i := 0; i < 4; i++ {
+		value += value
+	}
+	logrus.Info(value)
 	defer db.Close()
-	for i := 0; i < 200000; i++ {
-		x := rand.Int() % 1000000
-		db.Put(gokv.IntToStringWithZero8(x), gokv.IntToStringWithZero8(x))
+	for k := 0; k < 10; k++ {
+		for i := 0; i < 10000000; i++ {
+			x := rand.Int() % 100000000
+			db.Put(fmt.Sprintf("%d", k)+gokv.IntToStringWithZero8(x), value)
+			if i%1000000 == 0 {
+				logrus.Info(i)
+			}
+		}
 	}
 	time.Sleep(1 * time.Second)
 }

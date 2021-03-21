@@ -309,24 +309,34 @@ func (r *sstReader) getMetaBlock(offset, len int) *metaBlock {
 
 // 根据文件偏移获得一个 dataBlock指针
 // 先读取 dataBlock indexKey, 再
-func (r *sstReader) getDataBlock(offset, len int) *dataBlock {
+func (r *sstReader) getDataBlock(offset, len_ int) *dataBlock {
 	// 从 LRU缓存中找, 缓存应当是一个全局的变量, 在 init 中初始化,
 	db, get := DataBlockCache.Get(BlockCacheKey{
 		filepath: r.filepath,
 		offset:   offset,
-		len:      len,
+		len:      len_,
 	})
 	if get { // 如果得到了缓存, 那么直接获取缓存返回. 否则从文件中读取之后, 再添加到缓存中
 		x := db.(*dataBlock)
 		return x
 	}
 	aDataBlock := dataBlock{}
-	content := r.ReadOffsetLen(offset, len)
-	indexKeyLen := int(binary.LittleEndian.Uint64(content[len-8:]))
-	for i := len - 8 - 8*indexKeyLen; i < len-8; i += 8 {
+	content := r.ReadOffsetLen(offset, len_)
+	indexKeyLen := int(binary.LittleEndian.Uint64(content[len_-8:]))
+	x := int(len_ - 8 - 8*indexKeyLen)
+	if x < 0 || x >= len(content) {
+		//logrus.Info(content[len_-8:])
+		//logrus.Info(binary.LittleEndian.Uint64(content[len_-8:]))
+		//logrus.Info(r.file.Name()+" ", offset, len_)
+		//logrus.Info(x)
+	}
+	for i := len_ - 8 - 8*indexKeyLen; i < len_-8; i += 8 {
+		if i < 0 || i >= len(content) {
+			//logrus.Info(x)
+		}
 		aDataBlock.indexKeys = append(aDataBlock.indexKeys, binary.LittleEndian.Uint64(content[i:i+8]))
 	}
-	aDataBlock.content = content[:len-8-8*indexKeyLen]
+	aDataBlock.content = content[:len_-8-8*indexKeyLen]
 	// offset 有一些用处, 可以通过 offset 以及 indexKeys[i] 的差值来计算一个 key 在 datablock的content中的相对偏移
 	aDataBlock.offset = offset
 	// maxKey 和 count 在内存上都是无效的, 因此可以随便赋一个值
@@ -336,7 +346,7 @@ func (r *sstReader) getDataBlock(offset, len int) *dataBlock {
 	DataBlockCache.Insert(BlockCacheKey{
 		filepath: r.filepath,
 		offset:   offset,
-		len:      len,
+		len:      len_,
 	}, &aDataBlock) // 保存地址, 而不是完整结构
 	return &aDataBlock
 }

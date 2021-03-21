@@ -47,7 +47,7 @@ func TestFindKey(t *testing.T) {
 // 能够find每个 key, 这说明这里的查找和读取逻辑是正确的
 func TestFindAll(t *testing.T) {
 	sstR := sstReader{}
-	file, err := os.Open("test/compaction_test/read_test.sst")
+	file, err := os.Open("test/db5/1616305839294176700.sst")
 	if err != nil {
 		panic(err)
 	}
