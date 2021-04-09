@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/Jameywoo/gokv"
-	"github.com/sirupsen/logrus"
 )
 
 // 从客户端传来的消息的格式
@@ -28,7 +27,7 @@ key 和 value 的长度用 uint32编码, 4字节
 编码为 [op(1), key_len(4), key, value_len(4), value]
 */
 func (m *Message) parse(msg []byte) error {
-	logrus.Info("parse: " + string(msg))
+	//logrus.Info("parse: " + string(msg))
 	if len(msg) < 5 {
 		return errors.New("parse error")
 	}

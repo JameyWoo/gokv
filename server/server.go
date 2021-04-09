@@ -16,10 +16,37 @@ import (
 	"fmt"
 	"github.com/Jameywoo/gokv"
 	"github.com/sirupsen/logrus"
+	"github.com/syndtr/goleveldb/leveldb"
 	"log"
 	"net"
 	"os"
 )
+
+type DB interface {
+	Put(s1, s2 []byte) error
+	Get(key []byte) ([]byte, bool)
+	Delete(key []byte) error
+}
+
+type LevelDB struct {
+	db *leveldb.DB
+}
+
+func (l *LevelDB) Put(s1, s2 []byte) error {
+	return l.db.Put(s1, s2, nil)
+}
+
+func (l *LevelDB) Get(key []byte) ([]byte, bool) {
+	val, err := l.db.Get(key, nil)
+	if err != nil {
+		return nil, false
+	}
+	return val, true
+}
+
+func (l *LevelDB) Delete(key []byte) error {
+	return l.db.Delete(key, nil)
+}
 
 func main() {
 	//open()
@@ -58,9 +85,12 @@ func handleConn(conn net.Conn) {
 		logrus.Error(err)
 		return
 	}
-	db, err := gokv.Open(dirStr, &gokv.Options{ConfigPath: "./gokv.yaml"})
+	// 使用gokv
+	//db, err := gokv.Open(dirStr, &gokv.Options{ConfigPath: "./gokv.yaml"})
+	dbx, err := leveldb.OpenFile(dirStr, nil)
 	// 使用 db 一定不要忘记 close! 不然剩下的内容它不会flush到磁盘上!
-	defer db.Close()
+	defer dbx.Close()
+	db := &LevelDB{db: dbx}
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -84,13 +114,13 @@ func handleConn(conn net.Conn) {
 			logrus.Error(err)
 			return
 		}
-		logrus.Info(msg.op)
-		logrus.Info(string(msg.key))
-		logrus.Info(string(msg.value))
+		//logrus.Info(msg.op)
+		//logrus.Info("key:", msg.key)
+		//logrus.Info("value:", msg.value)
 		// 判断消息类型并执行
 		switch msg.op {
 		case gokv.PUT:
-			err := db.Put(string(msg.key), string(msg.value))
+			err := db.Put(msg.key, msg.value)
 			// 应当要有错误处理通知客户端key写失败了, 需要重新写
 			if err != nil {
 				toClient <- []byte("PUT_ERROR")
@@ -98,7 +128,7 @@ func handleConn(conn net.Conn) {
 				toClient <- []byte("PUT_SUCCESS")
 			}
 		case gokv.DEL:
-			err := db.Delete(string(msg.key))
+			err := db.Delete(msg.key)
 			// 应当要有错误处理通知客户端key删除失败了, 需要重新删除
 			if err != nil {
 				toClient <- []byte("DEL_ERROR")
@@ -106,10 +136,10 @@ func handleConn(conn net.Conn) {
 				toClient <- []byte("DEL_SUCCESS")
 			}
 		case gokv.GET:
-			value, get := db.Get(string(msg.key))
+			value, get := db.Get(msg.key)
 			// 成功get则向客户端发送value. 失败则通知失败
 			if get {
-				toClient <- []byte(value.Value)
+				toClient <- []byte(value)
 				_ = value
 			} else {
 				toClient <- []byte("GET_ERROR")
@@ -125,7 +155,7 @@ func clientWriter(conn net.Conn, ch <-chan []byte) {
 	for msg := range ch {
 		msgByte := msg
 		msgByteNew := BytesCombine(IntToBytes(len(msgByte)), msgByte)
-		logrus.Info("client write")
+		//logrus.Info("client write")
 		conn.Write(msgByteNew)
 	}
 }
