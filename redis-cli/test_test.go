@@ -32,7 +32,7 @@ func TestPutGet(t *testing.T) {
 	client.FlushAll()
 	client.Set("hello", "world", 0)
 	kvs := make(map[string]string)
-	addNKVMap(client, 0, 1000000, kvs)
+	addNKVMap(client, 0, 3000, kvs)
 	time.Sleep(1 * time.Second)
 	for key, val := range kvs {
 		res := client.Get(key)
@@ -51,6 +51,66 @@ func addNKVMap(client *redis.Client, start, end int, kvs map[string]string) {
 		value := "00000000000000000000011111111111111111111111"
 		kvs["key_"+fmt.Sprintf("%08d", i)] = "v_" + value
 		client.Set("key_"+fmt.Sprintf("%08d", i), "v_"+value, 0)
+		if i%1000 == 0 {
+			fmt.Printf("number: %d\n", i)
+		}
+	}
+}
+
+// 对普通 list类型的ziplist的测试
+func TestListZiplist(t *testing.T) {
+	client := redis.NewClient(&redis.Options{
+		// Addr:     "www.firego.cn:6379",
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+
+	client.RPush("la", "a", "b", "123", "shit", "fuck")
+	strs, err := client.LRange("la", 0, -1).Result()
+	if err != nil {
+		panic(err)
+	}
+	logrus.Info(strs)
+}
+
+func TestSetPutListZiplist(t *testing.T) {
+	client := redis.NewClient(&redis.Options{
+		// Addr:     "www.firego.cn:6379",
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+
+	client.FlushAll()
+	client.Set("hello", "world", 0)
+	kvs := make(map[string]string)
+	listZiplistNKVMap(client, 0, 3000, kvs)
+	time.Sleep(1 * time.Second)
+	for key, val := range kvs {
+		res, err := client.LRange(key, 0, 0).Result()
+		logrus.Infof("key: %s, val: %s", key, res)
+		if err != nil {
+			logrus.Panic(err)
+		}
+		//logrus.Infof("Info: val: %s, v: %s", val, v)
+		if val != res[0] {
+			logrus.Warnf("val: %s, v: %s", val, res[0])
+		}
+	}
+}
+
+func listZiplistNKVMap(client *redis.Client, start, end int, kvs map[string]string) {
+	for i := start; i <= end; i++ {
+		key := "key_" + fmt.Sprintf("%08d", i)
+		kvs[key] = "hello, world"
+		client.RPush(key, "hello, world")
 		if i%1000 == 0 {
 			fmt.Printf("number: %d\n", i)
 		}

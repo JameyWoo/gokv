@@ -23,13 +23,52 @@ import (
 )
 
 type DB interface {
+	Open(path string)
 	Put(s1, s2 []byte) error
 	Get(key []byte) ([]byte, bool)
 	Delete(key []byte) error
+	Close()
+}
+
+type Gokv struct {
+	db *gokv.DB
+}
+
+func (db *Gokv) Open(path string) {
+	godb, err := gokv.Open(path, &gokv.Options{ConfigPath: "./gokv.yaml"})
+	if err != nil {
+		panic(err)
+	}
+	db.db = godb
+}
+
+func (db *Gokv) Put(s1, s2 []byte) error {
+	return db.db.Put(string(s1), string(s2))
+}
+
+func (db *Gokv) Get(key []byte) ([]byte, bool) {
+	val, ok := db.db.Get(string(key))
+	return []byte(val.Value), ok
+}
+
+func (db *Gokv) Delete(key []byte) error {
+	return db.db.Delete(string(key))
+}
+
+func (db *Gokv) Close() {
+	db.db.Close()
 }
 
 type LevelDB struct {
 	db *leveldb.DB
+}
+
+func (l *LevelDB) Open(path string) {
+	dbx, err := leveldb.OpenFile(path, nil)
+	if err != nil {
+		panic(err)
+	}
+	l.db = dbx
 }
 
 func (l *LevelDB) Put(s1, s2 []byte) error {
@@ -46,6 +85,10 @@ func (l *LevelDB) Get(key []byte) ([]byte, bool) {
 
 func (l *LevelDB) Delete(key []byte) error {
 	return l.db.Delete(key, nil)
+}
+
+func (l *LevelDB) Close() {
+	l.db.Close()
 }
 
 func main() {
@@ -87,10 +130,13 @@ func handleConn(conn net.Conn) {
 	}
 	// 使用gokv
 	//db, err := gokv.Open(dirStr, &gokv.Options{ConfigPath: "./gokv.yaml"})
-	dbx, err := leveldb.OpenFile(dirStr, nil)
 	// 使用 db 一定不要忘记 close! 不然剩下的内容它不会flush到磁盘上!
-	defer dbx.Close()
-	db := &LevelDB{db: dbx}
+
+	var db DB
+	db = &LevelDB{}
+	//db = &Gokv{}
+	db.Open(dirStr)
+	defer db.Close()
 	if err != nil {
 		logrus.Error(err)
 	}
