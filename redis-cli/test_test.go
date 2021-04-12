@@ -32,7 +32,7 @@ func TestPutGet(t *testing.T) {
 	client.FlushAll()
 	client.Set("hello", "world", 0)
 	kvs := make(map[string]string)
-	addNKVMap(client, 0, 3000, kvs)
+	addNKVMap(client, 0, 100000, kvs)
 	time.Sleep(1 * time.Second)
 	for key, val := range kvs {
 		res := client.Get(key)
@@ -91,7 +91,7 @@ func TestSetPutListZiplist(t *testing.T) {
 	client.FlushAll()
 	client.Set("hello", "world", 0)
 	kvs := make(map[string]string)
-	listZiplistNKVMap(client, 0, 3000, kvs)
+	listZiplistNKVMap(client, 0, 10000, kvs)
 	time.Sleep(1 * time.Second)
 	for key, val := range kvs {
 		res, err := client.LRange(key, 0, 0).Result()
@@ -108,9 +108,94 @@ func TestSetPutListZiplist(t *testing.T) {
 
 func listZiplistNKVMap(client *redis.Client, start, end int, kvs map[string]string) {
 	for i := start; i <= end; i++ {
-		key := "key_" + fmt.Sprintf("%08d", i)
+		key := "list_ziplist_" + fmt.Sprintf("%06d", i)
 		kvs[key] = "hello, world"
 		client.RPush(key, "hello, world")
+		if i%1000 == 0 {
+			fmt.Printf("number: %d\n", i)
+		}
+	}
+}
+
+func TestHashZiplist(t *testing.T) {
+	client := redis.NewClient(&redis.Options{
+		// Addr:     "www.firego.cn:6379",
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+	client.FlushAll()
+	key := "fuckit"
+	client.HSet(key, "hello", "world")
+	te, _ := client.Type(key).Result()
+	logrus.Infof("Type: %s", te)
+	res, err := client.HGet(key, "hello").Result()
+	if err != nil {
+		panic(err)
+	}
+	logrus.Infof("key: %s, val: %s", key, res)
+}
+
+func TestTypeHashZiplist(t *testing.T) {
+	client := redis.NewClient(&redis.Options{
+		// Addr:     "www.firego.cn:6379",
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+
+	//client.FlushAll()
+	start := 0
+	end := 0
+	for i := start; i <= end; i++ {
+		key := "hash_ziplist_" + fmt.Sprintf("%06d", i)
+		client.HSet(key, "hello", "world")
+		logrus.Infof("key: %s", key)
+		res, _ := client.Type(key).Result()
+		logrus.Infof("type: %s", res)
+	}
+}
+
+func TestSetPutHashZiplist(t *testing.T) {
+	client := redis.NewClient(&redis.Options{
+		// Addr:     "www.firego.cn:6379",
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+
+	client.FlushAll()
+	client.Set("hello", "world", 0)
+	kvs := make(map[string]string)
+	hashZiplistNKVMap(client, 0, 10000, kvs)
+	time.Sleep(1 * time.Second)
+	for key, val := range kvs {
+		res, err := client.HGet(key, "hello").Result()
+		logrus.Infof("key: %s, val: %s", key, res)
+		if err != nil {
+			logrus.Panic(err)
+		}
+		if val != res {
+			logrus.Warnf("val: %s, v: %s", val, res)
+		}
+	}
+}
+
+func hashZiplistNKVMap(client *redis.Client, start, end int, kvs map[string]string) {
+	for i := start; i <= end; i++ {
+		key := "hash_ziplist_" + fmt.Sprintf("%06d", i)
+		kvs[key] = "world"
+		client.HSet(key, "hello", "world")
+		client.HSet(key, "fuck", "you")
+		logrus.Infof("key: %s", key)
 		if i%1000 == 0 {
 			fmt.Printf("number: %d\n", i)
 		}
