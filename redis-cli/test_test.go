@@ -32,7 +32,7 @@ func TestPutGet(t *testing.T) {
 	client.FlushAll()
 	client.Set("hello", "world", 0)
 	kvs := make(map[string]string)
-	addNKVMap(client, 0, 100000, kvs)
+	addNKVMap(client, 0, 3000, kvs)
 	time.Sleep(1 * time.Second)
 	for key, val := range kvs {
 		res := client.Get(key)
@@ -250,4 +250,19 @@ func TestScaleKeyGet(t *testing.T) {
 	}
 	wg.Wait()
 	logrus.Info("over!")
+}
+
+// 对redis进行一个性能测试
+func TestRedisPerformance(t *testing.T) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+	start := time.Now()
+	for i := 0; i < 100000; i++ {
+		client.Set(fmt.Sprintf("k_%d", i), "value", 0)
+	}
+	end := time.Now()
+	logrus.Info(end.Sub(start))
 }
